@@ -1,0 +1,5 @@
+universal_robot/ur_description
+/home/simone/tackin/devel/.private/ur_description/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/ur_description/lib/pkgconfig/ur_description.pc /home/simone/tackin/devel/lib/pkgconfig/ur_description.pc
+/home/simone/tackin/devel/.private/ur_description/share/ur_description/cmake/ur_descriptionConfig-version.cmake /home/simone/tackin/devel/share/ur_description/cmake/ur_descriptionConfig-version.cmake
+/home/simone/tackin/devel/.private/ur_description/share/ur_description/cmake/ur_descriptionConfig.cmake /home/simone/tackin/devel/share/ur_description/cmake/ur_descriptionConfig.cmake

@@ -1,0 +1,5 @@
+6-DOF-Arm-SImulation/urdf_arm_moveit2
+/home/simone/tackin/devel/.private/urdf_arm_moveit2/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/urdf_arm_moveit2/lib/pkgconfig/urdf_arm_moveit2.pc /home/simone/tackin/devel/lib/pkgconfig/urdf_arm_moveit2.pc
+/home/simone/tackin/devel/.private/urdf_arm_moveit2/share/urdf_arm_moveit2/cmake/urdf_arm_moveit2Config-version.cmake /home/simone/tackin/devel/share/urdf_arm_moveit2/cmake/urdf_arm_moveit2Config-version.cmake
+/home/simone/tackin/devel/.private/urdf_arm_moveit2/share/urdf_arm_moveit2/cmake/urdf_arm_moveit2Config.cmake /home/simone/tackin/devel/share/urdf_arm_moveit2/cmake/urdf_arm_moveit2Config.cmake

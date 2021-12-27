@@ -1,0 +1,5 @@
+test
+/home/simone/tackin/devel/.private/test/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/test/lib/pkgconfig/test.pc /home/simone/tackin/devel/lib/pkgconfig/test.pc
+/home/simone/tackin/devel/.private/test/share/test/cmake/testConfig.cmake /home/simone/tackin/devel/share/test/cmake/testConfig.cmake
+/home/simone/tackin/devel/.private/test/share/test/cmake/testConfig-version.cmake /home/simone/tackin/devel/share/test/cmake/testConfig-version.cmake

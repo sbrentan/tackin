@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ur5" >
+  <xacro:property name="width" value="0.02" />
+  <xacro:property name="height" value="0.04" />
+  <xacro:property name="roll" value="1.57" />
+  <xacro:property name="x" value="3.2" />
+  <xacro:property name="y" value="3" />
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+    </plugin>
+  </gazebo>
+  <link name="link1">
+    <collision>
+      <origin xyz="0 0 ${height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${width} ${width} ${height}"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 ${height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${width} ${width} ${height}"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+
+    <inertial>
+      <origin xyz="0 0 1" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia
+        ixx="1.0" ixy="0.0" ixz="0.0"
+        iyy="1.0" iyz="0.0"
+        izz="1.0"/>
+    </inertial>
+  </link>
+
+
+
+
+
+
+
+
+
+  <link name="link2">
+    <collision>
+      <origin xyz="0 0 ${height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${width} ${width} ${height}"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 ${height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${width} ${width} ${height}"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+
+    <inertial>
+      <origin xyz="0 0 1" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia
+        ixx="1.0" ixy="0.0" ixz="0.0"
+        iyy="1.0" iyz="0.0"
+        izz="1.0"/>
+    </inertial>
+  </link>
+
+
+  <joint type="fixed" name="circo_joint">
+      <parent link="link1"/>
+      <child link="link2"/>
+      <axis xyz="1 0 0"/>
+  </joint>
+
+
+
+
+</robot>

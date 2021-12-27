@@ -1,0 +1,5 @@
+universal_robot/ur_bringup
+/home/simone/tackin/devel/.private/ur_bringup/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/ur_bringup/lib/pkgconfig/ur_bringup.pc /home/simone/tackin/devel/lib/pkgconfig/ur_bringup.pc
+/home/simone/tackin/devel/.private/ur_bringup/share/ur_bringup/cmake/ur_bringupConfig-version.cmake /home/simone/tackin/devel/share/ur_bringup/cmake/ur_bringupConfig-version.cmake
+/home/simone/tackin/devel/.private/ur_bringup/share/ur_bringup/cmake/ur_bringupConfig.cmake /home/simone/tackin/devel/share/ur_bringup/cmake/ur_bringupConfig.cmake

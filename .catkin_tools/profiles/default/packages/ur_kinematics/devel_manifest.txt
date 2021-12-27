@@ -1,0 +1,12 @@
+universal_robot/ur_kinematics
+/home/simone/tackin/devel/.private/ur_kinematics/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/ur_kinematics/lib/libur5_moveit_plugin.so /home/simone/tackin/devel/lib/libur5_moveit_plugin.so
+/home/simone/tackin/devel/.private/ur_kinematics/lib/libur5_kin.so /home/simone/tackin/devel/lib/libur5_kin.so
+/home/simone/tackin/devel/.private/ur_kinematics/lib/libur3_moveit_plugin.so /home/simone/tackin/devel/lib/libur3_moveit_plugin.so
+/home/simone/tackin/devel/.private/ur_kinematics/lib/libur3_kin.so /home/simone/tackin/devel/lib/libur3_kin.so
+/home/simone/tackin/devel/.private/ur_kinematics/lib/libur10_moveit_plugin.so /home/simone/tackin/devel/lib/libur10_moveit_plugin.so
+/home/simone/tackin/devel/.private/ur_kinematics/lib/libur10_kin.so /home/simone/tackin/devel/lib/libur10_kin.so
+/home/simone/tackin/devel/.private/ur_kinematics/lib/pkgconfig/ur_kinematics.pc /home/simone/tackin/devel/lib/pkgconfig/ur_kinematics.pc
+/home/simone/tackin/devel/.private/ur_kinematics/lib/python3/dist-packages/ur_kinematics/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/ur_kinematics/__init__.py
+/home/simone/tackin/devel/.private/ur_kinematics/share/ur_kinematics/cmake/ur_kinematicsConfig.cmake /home/simone/tackin/devel/share/ur_kinematics/cmake/ur_kinematicsConfig.cmake
+/home/simone/tackin/devel/.private/ur_kinematics/share/ur_kinematics/cmake/ur_kinematicsConfig-version.cmake /home/simone/tackin/devel/share/ur_kinematics/cmake/ur_kinematicsConfig-version.cmake

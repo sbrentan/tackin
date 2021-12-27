@@ -1,0 +1,68 @@
+roslaunch gazebo_ros empty_world.launch
+source $HOME/tackin_ws/devel/setup.bash
+source /opt/ros/noetic/setup.bash
+roslaunch gazebo_ros empty_world.launch
+rosrun gazebo_ros spawn_model -file ~/catkin_ws/ur5_.urdf -urdf -x 0 -y 0 -z 0.1 -model ur5
+
+rostopic pub -1 /cmd_vel geometry_msgs/Twist "linear:
+  x: 0.5
+  y: 0.0
+  z: 0.0
+angular:
+  x: 0.0
+  y: 0.0
+  z: 0.8"
+  rosservice call /gazebo/unpause_physics
+  
+  
+  ///MOVING ARM
+  
+  //arm spawning
+  rosrun gazebo_ros spawn_model -file /home/simone/tackin_ws/src/ur5-joint-position-control/urdf/ur5_jnt_pos_ctrl.urdf -urdf -x 0 -y 0 -z 0.1 -model ur5 -J shoulder_lift_joint -1.5 -J elbow_joint 1.0
+  
+  //movement controller
+  roslaunch ur5-joint-position-control ur5_joint_position_control.launch
+  
+  //1st joint
+  rostopic pub -1 /shoulder_pan_joint_position_controller/command std_msgs/Float64 "data: -0.5"
+  //2nd joint
+  rostopic pub -1 /shoulder_lift_joint_position_controller/command std_msgs/ Float64 "data: -0.5"
+  //3rd joint
+  rostopic pub -1 /elbow_joint_position_controller/command std_msgs/Float64 "data: -0.5"
+  
+  //4th joint
+  rostopic pub -1 /wrist_2_joint_position_controller/command std_msgs/Float64 "data: -0.5"
+  
+  //5th joint
+  rostopic pub -1 /wrist_1_joint_position_controller/command std_msgs/Float64 "data: -0.5"
+  
+  //6th joint
+  rostopic pub -1 /wrist_3_joint_position_controller/command std_msgs/Float64 "data: -0.5"
+  
+    
+    
+  //GENERAL ROS
+  
+  rosservice call /gazebo/delete_model ur7
+    
+  xacro 3farm.xacro > circo.urdf
+    
+    
+    
+  ///INSTALLATION
+  
+  git clone -b melodic-devel-staging https://github.com/ros-industrial/universal_robot.git
+  rosdep update
+  apt udpate
+  rosdep install --rosdistro $ROS_DISTRO --ignore-src --from-paths src
+  
+  git clone https://github.com/dairal/ur5-joint-position-control.git
+  
+  sudo apt-get install ros-$ROS_DISTRO-ros-control ros-$ROS_DISTRO-ros-controllers
+  
+  
+
+  ////GLOBAL VARIABLES
+
+. /usr/share/gazebo/setup.sh
+export GAZEBO_MODEL_PATH=/home/simone/.gazebo/models:/usr/share/gazebo-11/models:$GAZEBO_MODEL_PATH

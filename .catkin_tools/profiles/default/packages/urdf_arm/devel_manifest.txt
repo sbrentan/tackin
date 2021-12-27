@@ -1,0 +1,5 @@
+6-DOF-Arm-SImulation/urdf_arm
+/home/simone/tackin/devel/.private/urdf_arm/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/urdf_arm/lib/pkgconfig/urdf_arm.pc /home/simone/tackin/devel/lib/pkgconfig/urdf_arm.pc
+/home/simone/tackin/devel/.private/urdf_arm/share/urdf_arm/cmake/urdf_armConfig.cmake /home/simone/tackin/devel/share/urdf_arm/cmake/urdf_armConfig.cmake
+/home/simone/tackin/devel/.private/urdf_arm/share/urdf_arm/cmake/urdf_armConfig-version.cmake /home/simone/tackin/devel/share/urdf_arm/cmake/urdf_armConfig-version.cmake

@@ -1,0 +1,6 @@
+smart_grasping_sandbox/smart_grasping_sandbox
+/home/simone/tackin/devel/.private/smart_grasping_sandbox/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/smart_grasping_sandbox/lib/pkgconfig/smart_grasping_sandbox.pc /home/simone/tackin/devel/lib/pkgconfig/smart_grasping_sandbox.pc
+/home/simone/tackin/devel/.private/smart_grasping_sandbox/lib/python3/dist-packages/smart_grasping_sandbox/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/smart_grasping_sandbox/__init__.py
+/home/simone/tackin/devel/.private/smart_grasping_sandbox/share/smart_grasping_sandbox/cmake/smart_grasping_sandboxConfig.cmake /home/simone/tackin/devel/share/smart_grasping_sandbox/cmake/smart_grasping_sandboxConfig.cmake
+/home/simone/tackin/devel/.private/smart_grasping_sandbox/share/smart_grasping_sandbox/cmake/smart_grasping_sandboxConfig-version.cmake /home/simone/tackin/devel/share/smart_grasping_sandbox/cmake/smart_grasping_sandboxConfig-version.cmake

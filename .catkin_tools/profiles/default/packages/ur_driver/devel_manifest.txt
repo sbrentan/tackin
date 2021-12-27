@@ -1,0 +1,12 @@
+universal_robot/ur_driver
+/home/simone/tackin/devel/.private/ur_driver/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/ur_driver/lib/pkgconfig/ur_driver.pc /home/simone/tackin/devel/lib/pkgconfig/ur_driver.pc
+/home/simone/tackin/devel/.private/ur_driver/lib/python3/dist-packages/ur_driver/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/ur_driver/__init__.py
+/home/simone/tackin/devel/.private/ur_driver/lib/python3/dist-packages/ur_driver/cfg/URDriverConfig.py /home/simone/tackin/devel/lib/python3/dist-packages/ur_driver/cfg/URDriverConfig.py
+/home/simone/tackin/devel/.private/ur_driver/lib/python3/dist-packages/ur_driver/cfg/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/ur_driver/cfg/__init__.py
+/home/simone/tackin/devel/.private/ur_driver/include/ur_driver/URDriverConfig.h /home/simone/tackin/devel/include/ur_driver/URDriverConfig.h
+/home/simone/tackin/devel/.private/ur_driver/share/ur_driver/cmake/ur_driverConfig.cmake /home/simone/tackin/devel/share/ur_driver/cmake/ur_driverConfig.cmake
+/home/simone/tackin/devel/.private/ur_driver/share/ur_driver/cmake/ur_driverConfig-version.cmake /home/simone/tackin/devel/share/ur_driver/cmake/ur_driverConfig-version.cmake
+/home/simone/tackin/devel/.private/ur_driver/share/ur_driver/docs/URDriverConfig.wikidoc /home/simone/tackin/devel/share/ur_driver/docs/URDriverConfig.wikidoc
+/home/simone/tackin/devel/.private/ur_driver/share/ur_driver/docs/URDriverConfig-usage.dox /home/simone/tackin/devel/share/ur_driver/docs/URDriverConfig-usage.dox
+/home/simone/tackin/devel/.private/ur_driver/share/ur_driver/docs/URDriverConfig.dox /home/simone/tackin/devel/share/ur_driver/docs/URDriverConfig.dox
