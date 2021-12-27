@@ -1,0 +1,5 @@
+test2_description
+/home/simone/tackin/devel/.private/test2_description/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/test2_description/lib/pkgconfig/test2_description.pc /home/simone/tackin/devel/lib/pkgconfig/test2_description.pc
+/home/simone/tackin/devel/.private/test2_description/share/test2_description/cmake/test2_descriptionConfig.cmake /home/simone/tackin/devel/share/test2_description/cmake/test2_descriptionConfig.cmake
+/home/simone/tackin/devel/.private/test2_description/share/test2_description/cmake/test2_descriptionConfig-version.cmake /home/simone/tackin/devel/share/test2_description/cmake/test2_descriptionConfig-version.cmake
