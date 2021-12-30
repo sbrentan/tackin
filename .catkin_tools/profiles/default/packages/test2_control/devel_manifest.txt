@@ -1,0 +1,5 @@
+test2_control
+/home/simone/tackin/devel/.private/test2_control/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/test2_control/lib/pkgconfig/test2_control.pc /home/simone/tackin/devel/lib/pkgconfig/test2_control.pc
+/home/simone/tackin/devel/.private/test2_control/share/test2_control/cmake/test2_controlConfig-version.cmake /home/simone/tackin/devel/share/test2_control/cmake/test2_controlConfig-version.cmake
+/home/simone/tackin/devel/.private/test2_control/share/test2_control/cmake/test2_controlConfig.cmake /home/simone/tackin/devel/share/test2_control/cmake/test2_controlConfig.cmake

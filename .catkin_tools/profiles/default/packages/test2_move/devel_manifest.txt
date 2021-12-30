@@ -1,0 +1,5 @@
+test2_move
+/home/simone/tackin/devel/.private/test2_move/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/test2_move/lib/pkgconfig/test2_move.pc /home/simone/tackin/devel/lib/pkgconfig/test2_move.pc
+/home/simone/tackin/devel/.private/test2_move/share/test2_move/cmake/test2_moveConfig.cmake /home/simone/tackin/devel/share/test2_move/cmake/test2_moveConfig.cmake
+/home/simone/tackin/devel/.private/test2_move/share/test2_move/cmake/test2_moveConfig-version.cmake /home/simone/tackin/devel/share/test2_move/cmake/test2_moveConfig-version.cmake
