@@ -15,8 +15,9 @@ angular:
   rosservice call /gazebo/unpause_physics
 
 
+  alias spawntackin="rosservice call /gazebo/delete_model test2; roslaunch test2_gazebo spawn_robot.launch"
 
-  alias killgazebo="killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient"     ----      15
+  alias killgazebo="killall -15 gazebo & killall -15 gzserver  & killall -15 gzclient"
 
   rosrun gazebo_ros gzserver
   

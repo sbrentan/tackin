@@ -7,4 +7,7 @@
     <arg name="world_name" value="$(find test2_gazebo)/worlds/test2.world"/>
     <!-- more default parameters can be changed here -->
   </include>
+
+  <include ns="test2" file="$(find test2_gazebo)/launch/spawn_robot.launch"/>
+
 </launch>
