@@ -16,7 +16,7 @@ angular:
 
 
 
-  alias killgazebo="killall -9 gazebo & killall -9 gzserver  & killall -9 gzclient"     ----      15
+  alias killgazebo="killall -15 gazebo & killall -15 gzserver  & killall -15 gzclient"     ----      15
 
   rosrun gazebo_ros gzserver
   
@@ -76,3 +76,16 @@ export GAZEBO_MODEL_PATH=/home/simone/.gazebo/models:/usr/share/gazebo-11/models
 
 
 export GAZEBO_MODEL_PATH=/home/simone/.gazebo/models:/usr/share/gazebo-11/models:/home/simone/tackin/src
+
+
+//
+
+rosrun gazebo_ros gazebo --verbose
+(con 'roscore' su altro terminale)
+
+  /// RVIZ
+  
+  Displays>Global Options>Fixed Frame>kinect_ros ovvero il frameName del plugin
+  Add PointCloud2>topic>/kinect_ros/depth/points ovvero il topic del plugin
+
+
