@@ -7,15 +7,15 @@
     <include>
       <uri>model://sun</uri>
     </include>
-    <include>
+    <!--include>
       <uri>model://suv</uri>
       <name>suv</name>
       <pose>-2.0 7.0 0 0 0 0</pose>
-    </include>
-    <include>
+    </include-->
+    <!--include>
       <uri>model://test2_description</uri>
-      <!--name>test2</name>
-      <pose>2.0 2.0 2.0 0 0 0</pose-->
-    </include>
+      <name>test2</name>
+      <pose>2.0 2.0 2.0 0 0 0</pose>
+    </include-->
   </world>
 </sdf>
