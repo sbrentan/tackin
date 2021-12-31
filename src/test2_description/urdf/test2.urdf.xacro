@@ -212,26 +212,34 @@
   </link>
 
 
-
-
-  <joint name="finger1_base_joint" type="revolute">
+  <!--joint name="finger1_base_joint" type="revolute">
       <parent link="wrist_3_link"/>
       <child link="finger1"/>
       <origin rpy="1.57 1.57 0" xyz="-0.02 0.1 -0.018"/>
-      <axis xyz="1 0 0"/>
+      <axis xyz="1 0 1"/>
       <limit effort="28.0" lower="-3.14159265" upper="3.14159265" velocity="3.2"/>
+      <dynamics damping="0.0" friction="0.0"/>
+  </joint-->
+
+
+
+  <joint name="finger1_base_joint" type="prismatic">
+      <parent link="wrist_3_link"/>
+      <child link="finger1"/>
+      <origin rpy="1.57 1.57 0" xyz="-0.02 0.103 -0.018"/>
+      <axis xyz="1 -1 0"/>
+      <limit effort="28.0" lower="-0.2" upper="0.2" velocity="3.2"/>
       <dynamics damping="0.0" friction="0.0"/>
   </joint>
   <link name="finger1">
     <visual>
         <geometry>
-            <cylinder length="0.04" radius="0.007" />
+            <cylinder length="0.04" radius="0.004" />
         </geometry>
-       
     </visual>
     <collision>
         <geometry>
-            <cylinder length="0.04" radius="0.007" />
+            <cylinder length="0.04" radius="0.004" />
         </geometry>
     </collision>
     
@@ -241,26 +249,27 @@
     </inertial>
 
   </link>
+  <gazebo reference="finger1">
+      <material>Gazebo/DarkGrey</material>
+  </gazebo>
 
-
-  <joint name="finger2_base_joint" type="revolute">
+  <joint name="finger2_base_joint" type="prismatic">
       <parent link="wrist_3_link"/>
       <child link="finger2"/>
-      <origin rpy="1.57 1.57 0" xyz="0.02 0.1 -0.018"/>
-      <axis xyz="1 0 0"/>
-      <limit effort="28.0" lower="-3.14159265" upper="3.14159265" velocity="3.2"/>
-    <dynamics damping="0.0" friction="0.0"/>
+      <origin rpy="1.57 1.57 0" xyz="0.02 0.103 -0.018"/>
+      <axis xyz="1 1 0"/>
+      <limit effort="28.0" lower="-0.2" upper="0.2" velocity="3.2"/>
+      <dynamics damping="0.0" friction="0.0"/>
   </joint>
   <link name="finger2">
     <visual>
         <geometry>
-            <cylinder length="0.04" radius="0.007" />
+            <cylinder length="0.04" radius="0.004" />
         </geometry>
-       
     </visual>
     <collision>
         <geometry>
-            <cylinder length="0.04" radius="0.007" />
+            <cylinder length="0.04" radius="0.004" />
         </geometry>
     </collision>
     
@@ -270,27 +279,29 @@
     </inertial>
 
   </link>
+  <gazebo reference="finger2">
+      <material>Gazebo/DarkGrey</material>
+  </gazebo>
 
 
 
-  <joint name="finger3_base_joint" type="revolute">
+  <joint name="finger3_base_joint" type="prismatic">
       <parent link="wrist_3_link"/>
       <child link="finger3"/>
-      <origin rpy="1.57 1.57 0" xyz="0 0.1 0.025"/>
-      <axis xyz="1 0 0"/>
-      <limit effort="28.0" lower="-3.14159265" upper="3.14159265" velocity="3.2"/>
-    <dynamics damping="0.0" friction="0.0"/>
+      <origin rpy="1.57 1.57 0" xyz="0 0.103 0.025"/>
+      <axis xyz="-1 0 0"/>
+      <limit effort="28.0" lower="-0.2" upper="0.2" velocity="3.2"/>
+      <dynamics damping="0.0" friction="0.0"/>
   </joint>
   <link name="finger3">
     <visual>
         <geometry>
-            <cylinder length="0.04" radius="0.007" />
+            <cylinder length="0.04" radius="0.004" />
         </geometry>
-       
     </visual>
     <collision>
         <geometry>
-            <cylinder length="0.04" radius="0.007" />
+            <cylinder length="0.04" radius="0.004" />
         </geometry>
     </collision>
     
@@ -300,6 +311,9 @@
     </inertial>
 
   </link>
+  <gazebo reference="finger3">
+      <material>Gazebo/DarkGrey</material>
+  </gazebo>
 
 
 
@@ -363,7 +377,36 @@
 
 
 
-
+  <transmission name="trans_f_finger">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="finger1_base_joint">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="finger1_motor">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
+  <transmission name="trans_finger2">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="finger2_base_joint">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="finger2_motor">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
+  <transmission name="trans_finger3">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="finger3_base_joint">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="finger3_motor">
+          <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+          <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+  </transmission>
 
 
 
