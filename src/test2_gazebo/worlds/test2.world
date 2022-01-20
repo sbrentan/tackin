@@ -1,12 +1,21 @@
 <?xml version="1.0" ?>
 <sdf version="1.4">
   <world name="default">
+    <plugin name="ros_link_attacher_plugin" filename="libgazebo_ros_link_attacher.so"/>
     <include>
       <uri>model://ground_plane</uri>
     </include>
     <include>
       <uri>model://sun</uri>
     </include>
+    <include>
+      <uri>model://depth_camera</uri>
+    </include>
+    <!--include>
+      <uri>model://unit_box</uri>
+      <name>box</name>
+      <pose>1.28 0.15 -0.05</pose>
+    </include-->
     <!--include>
       <uri>model://suv</uri>
       <name>suv</name>

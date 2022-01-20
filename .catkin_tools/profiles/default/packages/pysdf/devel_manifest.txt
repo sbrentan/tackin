@@ -1,0 +1,6 @@
+pysdf
+/home/simone/tackin/devel/.private/pysdf/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/pysdf/lib/pkgconfig/pysdf.pc /home/simone/tackin/devel/lib/pkgconfig/pysdf.pc
+/home/simone/tackin/devel/.private/pysdf/lib/python3/dist-packages/pysdf/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/pysdf/__init__.py
+/home/simone/tackin/devel/.private/pysdf/share/pysdf/cmake/pysdfConfig-version.cmake /home/simone/tackin/devel/share/pysdf/cmake/pysdfConfig-version.cmake
+/home/simone/tackin/devel/.private/pysdf/share/pysdf/cmake/pysdfConfig.cmake /home/simone/tackin/devel/share/pysdf/cmake/pysdfConfig.cmake

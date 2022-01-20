@@ -1,0 +1,5 @@
+ur5_with_robotiq_gripper/icl_ur5_setup_bringup
+/home/simone/tackin/devel/.private/icl_ur5_setup_bringup/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/icl_ur5_setup_bringup/lib/pkgconfig/icl_ur5_setup_bringup.pc /home/simone/tackin/devel/lib/pkgconfig/icl_ur5_setup_bringup.pc
+/home/simone/tackin/devel/.private/icl_ur5_setup_bringup/share/icl_ur5_setup_bringup/cmake/icl_ur5_setup_bringupConfig-version.cmake /home/simone/tackin/devel/share/icl_ur5_setup_bringup/cmake/icl_ur5_setup_bringupConfig-version.cmake
+/home/simone/tackin/devel/.private/icl_ur5_setup_bringup/share/icl_ur5_setup_bringup/cmake/icl_ur5_setup_bringupConfig.cmake /home/simone/tackin/devel/share/icl_ur5_setup_bringup/cmake/icl_ur5_setup_bringupConfig.cmake

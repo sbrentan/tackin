@@ -1,0 +1,6 @@
+Universal_Robots_ROS_Driver/controller_stopper
+/home/simone/tackin/devel/.private/controller_stopper/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/controller_stopper/lib/pkgconfig/controller_stopper.pc /home/simone/tackin/devel/lib/pkgconfig/controller_stopper.pc
+/home/simone/tackin/devel/.private/controller_stopper/lib/controller_stopper/node /home/simone/tackin/devel/lib/controller_stopper/node
+/home/simone/tackin/devel/.private/controller_stopper/share/controller_stopper/cmake/controller_stopperConfig-version.cmake /home/simone/tackin/devel/share/controller_stopper/cmake/controller_stopperConfig-version.cmake
+/home/simone/tackin/devel/.private/controller_stopper/share/controller_stopper/cmake/controller_stopperConfig.cmake /home/simone/tackin/devel/share/controller_stopper/cmake/controller_stopperConfig.cmake

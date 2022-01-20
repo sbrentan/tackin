@@ -18,31 +18,9 @@ def talker():
     rospy.init_node('supreme_commander', anonymous=True)
     rate = rospy.Rate(100) # 10hz
 
-    # shoulder_pan_pub.publish(1.57/2)
-    # time.sleep(0.2)
-    # shoulder_lift_pub.publish(-1.57/2)
-    # time.sleep(0.2)
-    # elbow_pub.publish(1.57/2)
-    # time.sleep(0.2)
-    # wrist1_pub.publish(-1.57)
-    # time.sleep(0.2)
-    # wrist2_pub.publish(-1.57)
-    # time.sleep(0.2)
-
-    wrist1_pub.publish(-1.57)
-    time.sleep(0.5)
-    wrist2_pub.publish(-1.57)
-    time.sleep(0.5)
-    
-    shoulder_lift_pub.publish(-0.15)
-    time.sleep(0.5)
-    elbow_pub.publish(-0.15)
-    time.sleep(0.5)
-    shoulder_lift_pub.publish(0.15)
-    time.sleep(0.5)
-
-
-    #0.9071 0.109 0.0108
+    finger1_pub.publish(-0.01);
+    finger2_pub.publish(-0.01);
+    finger3_pub.publish(0.01);
 
 
 

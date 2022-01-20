@@ -1,0 +1,5 @@
+ur5_with_robotiq_gripper/icl_ur5_setup_gazebo
+/home/simone/tackin/devel/.private/icl_ur5_setup_gazebo/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/icl_ur5_setup_gazebo/lib/pkgconfig/icl_ur5_setup_gazebo.pc /home/simone/tackin/devel/lib/pkgconfig/icl_ur5_setup_gazebo.pc
+/home/simone/tackin/devel/.private/icl_ur5_setup_gazebo/share/icl_ur5_setup_gazebo/cmake/icl_ur5_setup_gazeboConfig-version.cmake /home/simone/tackin/devel/share/icl_ur5_setup_gazebo/cmake/icl_ur5_setup_gazeboConfig-version.cmake
+/home/simone/tackin/devel/.private/icl_ur5_setup_gazebo/share/icl_ur5_setup_gazebo/cmake/icl_ur5_setup_gazeboConfig.cmake /home/simone/tackin/devel/share/icl_ur5_setup_gazebo/cmake/icl_ur5_setup_gazeboConfig.cmake

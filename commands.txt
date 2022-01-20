@@ -14,8 +14,8 @@ angular:
   z: 0.8"
   rosservice call /gazebo/unpause_physics
 
-
-  alias spawntackin="rosnode kill /test2/controller_spawner; rosnode kill /robot_state_publisher; rosservice call /gazebo/delete_model test2; roslaunch test2_gazebo spawn_robot.launch; roslaunch test2_control test2_control.launch &"
+  alias spawntackin="rosnode kill /test2/controller_spawner; rosnode kill /robot_state_publisher; rosservice call /gazebo/delete_model test2; roslaunch test2_gazebo spawn_robot.launch"
+  alias controltackin="spawntackin; roslaunch test2_control test2_control.launch &"
   
   alias killgazebo="killall -15 gazebo & killall -15 gzserver  & killall -15 gzclient"
 

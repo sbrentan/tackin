@@ -1,0 +1,6 @@
+robotiq/robotiq_ethercat
+/home/simone/tackin/devel/.private/robotiq_ethercat/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/robotiq_ethercat/lib/librobotiq_ethercat.so /home/simone/tackin/devel/lib/librobotiq_ethercat.so
+/home/simone/tackin/devel/.private/robotiq_ethercat/lib/pkgconfig/robotiq_ethercat.pc /home/simone/tackin/devel/lib/pkgconfig/robotiq_ethercat.pc
+/home/simone/tackin/devel/.private/robotiq_ethercat/share/robotiq_ethercat/cmake/robotiq_ethercatConfig.cmake /home/simone/tackin/devel/share/robotiq_ethercat/cmake/robotiq_ethercatConfig.cmake
+/home/simone/tackin/devel/.private/robotiq_ethercat/share/robotiq_ethercat/cmake/robotiq_ethercatConfig-version.cmake /home/simone/tackin/devel/share/robotiq_ethercat/cmake/robotiq_ethercatConfig-version.cmake

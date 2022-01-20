@@ -1,0 +1,6 @@
+gazebo2rviz
+/home/simone/tackin/devel/.private/gazebo2rviz/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/gazebo2rviz/lib/pkgconfig/gazebo2rviz.pc /home/simone/tackin/devel/lib/pkgconfig/gazebo2rviz.pc
+/home/simone/tackin/devel/.private/gazebo2rviz/lib/python3/dist-packages/gazebo2rviz/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/gazebo2rviz/__init__.py
+/home/simone/tackin/devel/.private/gazebo2rviz/share/gazebo2rviz/cmake/gazebo2rvizConfig-version.cmake /home/simone/tackin/devel/share/gazebo2rviz/cmake/gazebo2rvizConfig-version.cmake
+/home/simone/tackin/devel/.private/gazebo2rviz/share/gazebo2rviz/cmake/gazebo2rvizConfig.cmake /home/simone/tackin/devel/share/gazebo2rviz/cmake/gazebo2rvizConfig.cmake

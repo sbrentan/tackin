@@ -1,0 +1,15 @@
+robotiq/robotiq_3f_gripper_control
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/librobotiq_3f_gripper_control.so /home/simone/tackin/devel/lib/librobotiq_3f_gripper_control.so
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/robotiq_3f_gripper_control/robotiq_3f_gripper_ethercat_node /home/simone/tackin/devel/lib/robotiq_3f_gripper_control/robotiq_3f_gripper_ethercat_node
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/robotiq_3f_gripper_control/robotiq_3f_gripper_can_node /home/simone/tackin/devel/lib/robotiq_3f_gripper_control/robotiq_3f_gripper_can_node
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/pkgconfig/robotiq_3f_gripper_control.pc /home/simone/tackin/devel/lib/pkgconfig/robotiq_3f_gripper_control.pc
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/python3/dist-packages/robotiq_3f_gripper_control/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/robotiq_3f_gripper_control/__init__.py
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/python3/dist-packages/robotiq_3f_gripper_control/cfg/__init__.py /home/simone/tackin/devel/lib/python3/dist-packages/robotiq_3f_gripper_control/cfg/__init__.py
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/lib/python3/dist-packages/robotiq_3f_gripper_control/cfg/Robotiq3FGripperConfig.py /home/simone/tackin/devel/lib/python3/dist-packages/robotiq_3f_gripper_control/cfg/Robotiq3FGripperConfig.py
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/include/robotiq_3f_gripper_control/Robotiq3FGripperConfig.h /home/simone/tackin/devel/include/robotiq_3f_gripper_control/Robotiq3FGripperConfig.h
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/share/robotiq_3f_gripper_control/cmake/robotiq_3f_gripper_controlConfig-version.cmake /home/simone/tackin/devel/share/robotiq_3f_gripper_control/cmake/robotiq_3f_gripper_controlConfig-version.cmake
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/share/robotiq_3f_gripper_control/cmake/robotiq_3f_gripper_controlConfig.cmake /home/simone/tackin/devel/share/robotiq_3f_gripper_control/cmake/robotiq_3f_gripper_controlConfig.cmake
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/share/robotiq_3f_gripper_control/docs/Robotiq3FGripperConfig-usage.dox /home/simone/tackin/devel/share/robotiq_3f_gripper_control/docs/Robotiq3FGripperConfig-usage.dox
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/share/robotiq_3f_gripper_control/docs/Robotiq3FGripperConfig.dox /home/simone/tackin/devel/share/robotiq_3f_gripper_control/docs/Robotiq3FGripperConfig.dox
+/home/simone/tackin/devel/.private/robotiq_3f_gripper_control/share/robotiq_3f_gripper_control/docs/Robotiq3FGripperConfig.wikidoc /home/simone/tackin/devel/share/robotiq_3f_gripper_control/docs/Robotiq3FGripperConfig.wikidoc
