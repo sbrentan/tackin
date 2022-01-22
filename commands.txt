@@ -90,3 +90,18 @@ rosrun gazebo_ros gazebo --verbose
   Add PointCloud2>topic>/kinect_ros/depth/points ovvero il topic del plugin
 
 
+
+
+
+rosservice call /link_attacher_node/attach "model_name_1: 'grasper'
+link_name_1: 'wrist_3_link'
+model_name_2: 'box'
+link_name_2: 'link'"
+
+rosservice call /link_attacher_node/detach "model_name_1: 'grasper'
+link_name_1: 'wrist_3_link'
+model_name_2: 'box'
+link_name_2: 'link'"
+
+
+
