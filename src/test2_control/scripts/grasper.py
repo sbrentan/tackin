@@ -7,6 +7,11 @@ import time
 from enum import Enum
 from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
 import os
+import numpy as np
+
+import kinematics as kin
+
+mat = np.matrix
 
 class Joint(Enum):
     SHOULDER_PAN = 0
@@ -152,8 +157,35 @@ def command(cmd):
     elif(cmd == "close"):
         close_gripper()
         attach_joints()
+    elif(cmd[0:3] == "kin"):
+        compute_kinematik(cmd.split()[1:])
     elif(cmd == "reset"):
         reset()
+
+def compute_kinematik(args): #BEST ARGS[0] = 6
+    args[0] = int(args[0])
+    args[1] = float(args[1])
+    args[2] = float(args[2])
+    print(args)
+    thetas = kin.invKine((mat([
+        [1, 0, 0, args[1]],
+        [0, 1, 0, args[2]],
+        [0, 0, 1, 0.7],
+        [0, 0, 0, 1]
+             ])))
+    print(thetas[0,args[0]], thetas[1,args[0]], thetas[2,args[0]], thetas[3,args[0]], thetas[4,args[0]], thetas[5,args[0]])
+
+    move(Joint.SHOULDER_PAN, thetas[0,args[0]])
+    time.sleep(0.1)
+    move(Joint.SHOULDER_LIFT, thetas[1,args[0]])
+    time.sleep(0.1)
+    move(Joint.ELBOW, thetas[2,args[0]])
+    time.sleep(0.1)
+    move(Joint.WRIST1, thetas[3,args[0]])
+    time.sleep(0.1)
+    move(Joint.WRIST2, thetas[4,args[0]])
+    time.sleep(0.1)
+    move(Joint.WRIST3, thetas[5,args[0]])
 
 
 def main():
