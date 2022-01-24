@@ -1,13 +1,18 @@
-Kin0 : spalla a sinistra, gomito all'insù, polso esterno
-Kin1 : spalla a sinistra, gomito all'ingiù, polso esterno
-Kin2 : spalla a sinistra, gomito all'insù, polso interno
-Kin3 : spalla a sinistra, gomito all'ingiù, polso interno
-Kin4 : spalla a destra, gomito all'ingiù, polso interno
-Kin5 : spalla a destra, gomito all'insù, polso interno
-Kin6 : spalla a destra, gomito all'ingiù, polso esterno
-Kin7 : spalla a destra, gomito all'insù, polso esterno
+Kin0 : spalla a sinistra, gomito all'insù, polso interno
+Kin1 : spalla a sinistra, gomito all'ingiù, polso interno
+Kin2 : spalla a sinistra, gomito all'insù, polso esterno
+Kin3 : spalla a sinistra, gomito all'ingiù, polso esterno
+Kin4 : spalla a destra, gomito all'ingiù, polso esterno
+Kin5 : spalla a destra, gomito all'insù, polso esterno
+Kin6 : spalla a destra, gomito all'ingiù, polso interno
+Kin7 : spalla a destra, gomito all'insù, polso interno
 
 Quelle che hanno polso esterno hanno un errore più alto.
+
+
+
+# 2 per gomito su polso esterno
+# 0 per gomito su polso interno
 
 
 Le altre derivano dalle scelte compiute. In totale sono 8 kinematics:

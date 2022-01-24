@@ -1,0 +1,14 @@
+<launch>
+  <!-- Convert xacro and put on parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro $(find test2_gazebo)/models/unit_box/model.sdf" />
+
+  <!--node pkg="rosservice" type="rosservice" name="delete_robot" args="call wait /gazebo/delete_model test2" /-->
+
+  <param name="x" value="$(arg x)"/>
+  <param name="y" value="$(arg y)"/>
+
+  <!-- Spawn a robot into Gazebo -->
+  <node name="spawn_sdf" pkg="gazebo_ros" type="spawn_model" args=" -sdf -param robot_description -model $(arg name)
+      -x $(arg x) -y $(arg y) -z 0.1" />
+
+</launch>

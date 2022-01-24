@@ -8,6 +8,8 @@
 #include "gazebo_ros_link_attacher/AttachResponse.h"
 #include <ignition/math/Pose3.hh>
 
+#include <unistd.h>
+
 namespace gazebo
 {
   // Register this plugin with the simulator
@@ -52,6 +54,7 @@ namespace gazebo
 
   void GazeboRosLinkAttacher::OnUpdate()
   {
+    this->muuutex.lock();
     if(!this->detach_vector.empty())
     {
       ROS_INFO_STREAM("Received before physics update callback... Detaching joints");
@@ -62,11 +65,26 @@ namespace gazebo
       {
         j = *it;
         j.joint->Detach();
+
+        /*for (auto it2 = joints.begin(); it2 != joints.end(); ++it2) {
+          if ((it2->model1.compare(it.model1) == 0) && (it2->model2.compare(it.model2) == 0) &&
+              (it2->link1.compare(it.link1) == 0) && (it2->link2.compare(it.link2) == 0)) {
+
+            joints.erase(it2)
+          }
+        }
+
+        //joints.erase(it);*/
+
+        //joints.clear();
+
+
         ROS_INFO_STREAM("Joint detached !");
         ++it;
       }
       detach_vector.clear();
     }
+    this->muuutex.unlock();
   }
 
 
@@ -166,22 +184,36 @@ namespace gazebo
   bool GazeboRosLinkAttacher::detach(std::string model1, std::string link1,
                                      std::string model2, std::string link2)
   {
+    this->muuutex.lock();
     // search for the instance of joint and do detach
     for (auto it = joints.begin(); it != joints.end(); ++it) {
       if ((it->model1.compare(model1) == 0) && (it->model2.compare(model2) == 0) &&
           (it->link1.compare(link1) == 0) && (it->link2.compare(link2) == 0)) {
 
-        //fixedJoint *jj = &(*it);
+        fixedJoint fj;
+        fj.model1 = it->model1;
+        fj.m1 = it->m1;
+        fj.link1 = it->link1;
+        fj.l1 = it->l1;
+        fj.model2 = it->model2;
+        fj.m2 = it->m2;
+        fj.link2 = it->link2;
+        fj.l2 = it->l2;
+        fj.joint = it->joint;
 
-        this->detach_vector.push_back(*it);
+        this->detach_vector.push_back(fj);
         ROS_INFO_STREAM("Detach joint request pushed in the detach vector");
-        joints.erase(it);
+
+        /*sleep(1);
+        joints.erase(it);*/
 
         /*it->joint->Detach();
         joints.erase(it);*/
+        this->muuutex.unlock();
         return true;
       }
     }
+    this->muuutex.unlock();
     return false;
   }
 

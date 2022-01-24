@@ -9,6 +9,11 @@ from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
 import os
 import numpy as np
 
+
+# Handles LaserScan messages to sense distance to obstacles (i.e. walls)
+from sensor_msgs.msg import LaserScan
+
+
 import kinematics as kin
 
 mat = np.matrix
@@ -61,6 +66,17 @@ def init():
 
     time.sleep(1)
     rospy.loginfo("Created all the publishers")
+
+    rospy.Subscriber("/laser/scan", LaserScan, scan_callback)
+
+
+
+
+def scan_callback(msg):
+    global depth_ranges, nlasers
+    depth_ranges = msg.ranges
+    nlasers = len(msg.ranges)
+
 
 
 #def move(joint, position):
@@ -140,26 +156,26 @@ def close_gripper():
     move(Joint.H1_F3J2, 0.25)
     move(Joint.H1_F3J3, 0.4)
 
-def attach_joints():
+def attach_joints(box):
 
     # Link them
     rospy.loginfo("Attaching wrist3 and box")
     req = AttachRequest()
     req.model_name_1 = "grasper"
     req.link_name_1 = "wrist_3_link"
-    req.model_name_2 = "box"
+    req.model_name_2 = box
     req.link_name_2 = "link"
 
     attach_srv.call(req)
 
-def detach_joints():
+def detach_joints(box):
 
     # Link them
     rospy.loginfo("Detaching wrist3 and box")
     req = AttachRequest()
     req.model_name_1 = "grasper"
     req.link_name_1 = "wrist_3_link"
-    req.model_name_2 = "box"
+    req.model_name_2 = box
     req.link_name_2 = "link"
 
     detach_srv.call(req)
@@ -179,29 +195,51 @@ def command(cmd):
         time.sleep(0.1)
         command("descend")
         command("open")
-    elif(cmd == "open"):
+    elif(cmd.split()[0] == "open"):
         open_gripper()
-        detach_joints()
-    elif(cmd == "close"):
+        time.sleep(0.5)
+        detach_joints(cmd.split()[1])
+    elif(cmd.split()[0] == "close"):
         close_gripper()
-        attach_joints()
+        time.sleep(0.5)
+        attach_joints(cmd.split()[1])
     elif(cmd[0:3] == "kin"):
         compute_kinematik(cmd.split()[1:])
+    elif(cmd == "depth"):
+        index_min = np.argmin(depth_ranges)
+        angle = (index_min * 90 / nlasers)
+        rad_angle = np.deg2rad(angle)
+        xdist = math.cos(rad_angle) * depth_ranges[index_min]
+        ydist = math.sin(rad_angle) * depth_ranges[index_min]
+        mode = 2
+        if(xdist <= 0.5 or ydist <= 0.5):
+            mode = 0
+        compute_kinematik([mode, xdist, ydist])
+
     elif(cmd == "reset"):
         reset()
 
 def compute_kinematik(args): #BEST ARGS[0] = 6
     args[0] = int(args[0])
-    args[1] = float(args[1])
-    args[2] = float(args[2])
+    args[1] = float(args[1]) + 0.015
+    args[2] = float(args[2]) + 0.015
+    zposition = -0.38
+    if(len(args) > 3):
+        zposition = args[3]
+
     print(args)
     thetas = kin.invKine((mat([
         [1, 0, 0, -args[1]],
-        [0, 1, 0, -args[2]],
-        [0, 0, 1, -0.05],
+        [0, -1, 0, -args[2]],
+        [0, 0, -1, zposition],
         [0, 0, 0, 1]
              ])))
     print(thetas[0,args[0]], thetas[1,args[0]], thetas[2,args[0]], thetas[3,args[0]], thetas[4,args[0]], thetas[5,args[0]])
+
+    move(Joint.WRIST1, thetas[3,args[0]])
+    move(Joint.WRIST2, thetas[4,args[0]])
+    move(Joint.WRIST3, thetas[5,args[0]])
+    time.sleep(1)
 
     move(Joint.SHOULDER_PAN, thetas[0,args[0]])
     time.sleep(0.1)
@@ -209,11 +247,7 @@ def compute_kinematik(args): #BEST ARGS[0] = 6
     time.sleep(0.1)
     move(Joint.ELBOW, thetas[2,args[0]])
     time.sleep(0.1)
-    move(Joint.WRIST1, thetas[3,args[0]])
-    time.sleep(0.1)
-    move(Joint.WRIST2, thetas[4,args[0]])
-    time.sleep(0.1)
-    move(Joint.WRIST3, thetas[5,args[0]])
+    
 
 
 def main():

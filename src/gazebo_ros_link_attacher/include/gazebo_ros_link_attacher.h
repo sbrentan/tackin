@@ -23,6 +23,8 @@
 #include "gazebo_ros_link_attacher/AttachRequest.h"
 #include "gazebo_ros_link_attacher/AttachResponse.h"
 
+#include <mutex>
+
 namespace gazebo
 {
 
@@ -78,6 +80,8 @@ namespace gazebo
         std::vector<fixedJoint> joints;
 
         std::vector<fixedJoint> detach_vector;
+
+        std::mutex muuutex;
 
         /// \brief The physics engine.
         physics::PhysicsEnginePtr physics;

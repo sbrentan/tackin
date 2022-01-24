@@ -8,11 +8,10 @@
     <include>
       <uri>model://sun</uri>
     </include>
+
     <include>
-      <uri>model://unit_box</uri>
-      <name>box</name>
-      <!--pose>1.28 0.15 -0.05</pose-->
-      <pose>2 1 1</pose>
+      <uri>model://hokuyo</uri>
+      <pose>0 0 0</pose>
     </include>
     <!--include>
       <uri>model://depth_camera</uri>
