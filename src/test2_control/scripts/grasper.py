@@ -45,7 +45,7 @@ def init():
     # rospy.init_node('supreme_commander', anonymous=True)
     # rate = rospy.Rate(1000) # 10hz
 
-    rospy.init_node('supreme_commander')    
+    rospy.init_node('supreme_commander')
 
     global attach_srv, detach_srv
     rospy.loginfo("Creating ServiceProxy to /link_attacher_node/attach")
@@ -60,7 +60,7 @@ def init():
 
 
 
-    
+
 def move(joint, position):
     if(joint == Joint.SHOULDER_PAN):
         os.system('rostopic pub -1 /shoulder_pan_joint_position_controller/command std_msgs/Float64 "data: '+str(position)+'" &')
@@ -91,6 +91,7 @@ def move(joint, position):
 
 
 def reset():
+    move(Joint.SHOULDER_PAN, 0)
     move(Joint.SHOULDER_LIFT, -0.785)
     move(Joint.ELBOW, 0.785)
     move(Joint.WRIST1, -1.57)
@@ -125,7 +126,7 @@ def attach_joints():
     attach_srv.call(req)
 
 def detach_joints():
-    
+
     # Link them
     rospy.loginfo("Detaching wrist3 and box")
     req = AttachRequest()
@@ -168,9 +169,9 @@ def compute_kinematik(args): #BEST ARGS[0] = 6
     args[2] = float(args[2])
     print(args)
     thetas = kin.invKine((mat([
-        [1, 0, 0, args[1]],
-        [0, 1, 0, args[2]],
-        [0, 0, 1, 0.7],
+        [1, 0, 0, -args[1]],
+        [0, 1, 0, -args[2]],
+        [0, 0, 1, -0.05],
         [0, 0, 0, 1]
              ])))
     print(thetas[0,args[0]], thetas[1,args[0]], thetas[2,args[0]], thetas[3,args[0]], thetas[4,args[0]], thetas[5,args[0]])
@@ -194,13 +195,13 @@ def main():
     while not rospy.is_shutdown():
         cmd = input()
         command(cmd)
-        
+
 
 
 if __name__ == '__main__':
     try:
         init()
-        
+
         main()
     except rospy.ROSInterruptException:
         pass
