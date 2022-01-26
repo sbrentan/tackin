@@ -31,14 +31,14 @@ test2:
     pid: {p: 100.0, i: 0.1, d: 10.0, i_clamp_min: -100.0, i_clamp_max: 100.0}
 
   finger_1_joint_position_controller:
-    type: position_controllers/JointPositionController
+    type: effort_controllers/JointPositionController
     joint: finger1_base_joint
     pid: {p: 100.0, i: 1.0, d: 1.0, i_clamp: 1.0 }
   finger_2_joint_position_controller:
-    type: position_controllers/JointPositionController
+    type: effort_controllers/JointPositionController
     joint: finger2_base_joint
     pid: {p: 100.0, i: 1.0, d: 1.0, i_clamp: 1.0 }
   finger_3_joint_position_controller:
-    type: position_controllers/JointPositionController
+    type: effort_controllers/JointPositionController
     joint: finger3_base_joint
     pid: {p: 100.0, i: 1.0, d: 1.0, i_clamp: 1.0 }

@@ -29,20 +29,20 @@ blocks = [ 'X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 'X
          'X1-Y3-Z2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2' ] # class names
 
 
-class Joint(Enum):
+SHOULDER_PAN = 0
+SHOULDER_LIFT = 1
+ELBOW = 2
+WRIST1 = 3
+WRIST2 = 4
+WRIST3 = 5
+H1_F1J2 = 6
+H1_F1J3 = 7
+H1_F2J2 = 8
+H1_F2J3 = 9
+H1_F3J2 = 10
+H1_F3J3 = 11
 
-    SHOULDER_PAN = 0
-    SHOULDER_LIFT = 1
-    ELBOW = 2
-    WRIST1 = 3
-    WRIST2 = 4
-    WRIST3 = 5
-    H1_F1J2 = 6
-    H1_F1J3 = 7
-    H1_F2J2 = 8
-    H1_F2J3 = 9
-    H1_F3J2 = 10
-    H1_F3J3 = 11
+
 
 def init():
     rospy.init_node('supreme_commander')
@@ -113,67 +113,71 @@ def scan_callback(msg):
     depth_ranges = msg.ranges
     nlasers = len(msg.ranges)
 
-def until_in_range(pos):
-    for i in range(40):
+def until_in_range(pos, max_wait = 4):
+    # print("Initial joint states: ")
+    # print(joint_states)
+    for i in range(max_wait * 10):
         in_position = True
         for k, v in pos.items():
-            print(joint_states[k])
-            if(joint_states[k] <= v + 0.02 and joint_states[k] >= v - 0.02):
+            if(not (joint_states[k] <= v + 0.05 and joint_states[k] >= v - 0.05)):
                 in_position = False
                 break;
         if(in_position): break
         time.sleep(0.1)
+    # print("Final joint states")
+    # print(joint_states)
+    # print()
 
 
 
 def move(joint, position):
-    if(joint == Joint.SHOULDER_PAN):
+    if(joint == SHOULDER_PAN):
         shoulder_pan_pub.publish(position)
-    elif(joint == Joint.SHOULDER_LIFT):
+    elif(joint == SHOULDER_LIFT):
         shoulder_lift_pub.publish(position)
-    elif(joint == Joint.ELBOW):
+    elif(joint == ELBOW):
         elbow_pub.publish(position)
-    elif(joint == Joint.WRIST1):
+    elif(joint == WRIST1):
         wrist1_pub.publish(position)
-    elif(joint == Joint.WRIST2):
+    elif(joint == WRIST2):
         wrist2_pub.publish(position)
-    elif(joint == Joint.WRIST3):
+    elif(joint == WRIST3):
         wrist3_pub.publish(position)
-    elif(joint == Joint.H1_F1J2):
+    elif(joint == H1_F1J2):
         H1_F1J2_pub.publish(position)
-    elif(joint == Joint.H1_F1J3):
+    elif(joint == H1_F1J3):
         H1_F1J3_pub.publish(position)
-    elif(joint == Joint.H1_F2J2):
+    elif(joint == H1_F2J2):
         H1_F2J2_pub.publish(position)
-    elif(joint == Joint.H1_F2J3):
+    elif(joint == H1_F2J3):
         H1_F2J3_pub.publish(position)
-    elif(joint == Joint.H1_F3J2):
+    elif(joint == H1_F3J2):
         H1_F3J2_pub.publish(position)
-    elif(joint == Joint.H1_F3J3):
+    elif(joint == H1_F3J3):
         H1_F3J3_pub.publish(position)
 
 def reset():
-    move(Joint.SHOULDER_PAN, 0)
-    move(Joint.SHOULDER_LIFT, -0.785)
-    move(Joint.ELBOW, 0.785)
-    move(Joint.WRIST1, -1.57)
-    move(Joint.WRIST2, -1.57)
+    move(SHOULDER_PAN, 0)
+    move(SHOULDER_LIFT, -0.785)
+    move(ELBOW, 0.785)
+    move(WRIST1, -1.57)
+    move(WRIST2, -1.57)
 
 def open_gripper():
-    move(Joint.H1_F1J2, -0.4)
-    move(Joint.H1_F1J3, 0)
-    move(Joint.H1_F2J2, -0.4)
-    move(Joint.H1_F2J3, 0)
-    move(Joint.H1_F3J2, -0.4)
-    move(Joint.H1_F3J3, 0)
+    move(H1_F1J2, -0.4)
+    move(H1_F1J3, 0)
+    move(H1_F2J2, -0.4)
+    move(H1_F2J3, 0)
+    move(H1_F3J2, -0.4)
+    move(H1_F3J3, 0)
 
 def close_gripper():
-    move(Joint.H1_F1J2, 0.25)
-    move(Joint.H1_F1J3, 0.4)
-    move(Joint.H1_F2J2, 0.25)
-    move(Joint.H1_F2J3, 0.4)
-    move(Joint.H1_F3J2, 0.25)
-    move(Joint.H1_F3J3, 0.4)
+    move(H1_F1J2, 0.25)
+    move(H1_F1J3, 0.4)
+    move(H1_F2J2, 0.25)
+    move(H1_F2J3, 0.4)
+    move(H1_F3J2, 0.25)
+    move(H1_F3J3, 0.4)
 
 def attach_joints(box):
 
@@ -200,17 +204,19 @@ def detach_joints(box):
     detach_srv.call(req)
 
 def command(cmd):
-    if(cmd == "rise"):
-        move(Joint.SHOULDER_LIFT, -0.785)
+    if(len(cmd.split()) < 1):
+        return
+    elif(cmd == "rise"):
+        move(SHOULDER_LIFT, -0.785)
         time.sleep(0.1)
-        move(Joint.ELBOW, 0.785)
+        move(ELBOW, 0.785)
     elif(cmd == "descend"):
-        move(Joint.ELBOW, 0)
+        move(ELBOW, 0)
         time.sleep(0.1)
-        move(Joint.SHOULDER_LIFT, 0)
+        move(SHOULDER_LIFT, 0)
         time.sleep(0.3)
     elif(cmd == "release"):
-        move(Joint.SHOULDER_PAN, 1.57)
+        move(SHOULDER_PAN, 1.57)
         time.sleep(0.1)
         command("descend")
         command("open")
@@ -221,7 +227,16 @@ def command(cmd):
             detach_joints(cmd.split()[1])
     elif(cmd.split()[0] == "close"):
         close_gripper()
-        time.sleep(1.5)
+        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
+        until_in_range({
+                H1_F1J2  : 0.25,
+                H1_F1J3  : 0.4,
+                H1_F2J2  : 0.25,
+                H1_F2J3  : 0.4,
+                H1_F3J2  : 0.25,
+                H1_F3J3  : 0.4,
+            })
+        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
         if(len(cmd.split()) > 1):
             attach_joints(cmd.split()[1])
     elif(cmd[0:3] == "kin"):
@@ -236,17 +251,27 @@ def command(cmd):
         if(xdist <= 0.5 or ydist <= 0.5):
             mode = 0
 
+        print("Found position")
+        print(xdist, ydist)
         thetas = compute_kinematik([mode, xdist, ydist, -0.2])
+
+
+        xdist += 0.021
+        ydist += 0.021
 
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
 
+        print("Required position: ")
+        print(thetas[0,mode], thetas[1,mode], thetas[2,mode], thetas[3,mode], thetas[4,mode], thetas[5,mode])
+        print()
+
         until_in_range({
-                0  : thetas[0],
-                1 : thetas[1],
-                2         : thetas[2],
-                3        : thetas[3],
-                4        : thetas[4],
-                5        : thetas[5],
+                SHOULDER_PAN  : thetas[SHOULDER_PAN, mode],
+                SHOULDER_LIFT  : thetas[SHOULDER_LIFT, mode],
+                ELBOW         : thetas[ELBOW, mode],
+                WRIST1        : thetas[WRIST1, mode],
+                WRIST2        : thetas[WRIST2, mode],
+                WRIST3        : thetas[WRIST3, mode],
             })
 
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
@@ -260,13 +285,27 @@ def command(cmd):
     elif(cmd.split()[0] == "spawnbox"):
         x, y, name = cmd.split()[1:]
         os.system("roslaunch test2_gazebo spawn_box.launch x:="+x+" y:="+y+" name:="+name+" > /dev/null")
-        print("Box spawned")
+
+    elif(cmd.split()[0] == "spawnbrick"):
+        x, y, name, model = cmd.split()[1:]
+        os.system("roslaunch test2_gazebo spawn_brick.launch x:="+x+" y:="+y+" name:="+name+" model:="+model+" > /dev/null")        
 
     elif(cmd == "detect"):
         model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu")
         camera_image = CvBridge().imgmsg_to_cv2(last_image)
         results = model(camera_image)
-        print(blocks[results.pandas().xyxy[0].at[0, "class"]])
+        if(results.pandas().xyxy[0].empty):
+            print("Nothing found")
+        else:
+            print(blocks[results.pandas().xyxy[0].at[0, "class"]])
+            print(results.pandas().xyxy[0].at[0, "confidence"])
+
+    elif(cmd == "test"):
+        print(joint_states)
+        print(joint_states[1])
+
+    elif(cmd.split()[0] == "rotate"):
+        move(WRIST1, joint_states[WRIST1] - 0.5)
 
     elif(cmd == "reset"):
         reset()
@@ -282,22 +321,22 @@ def compute_kinematik(args): #BEST ARGS[0] = 6
     if(len(args) > 3):
         zposition = float(args[3])
 
-    print(args)
+    # print(args)
     thetas = kin.invKine((mat([
         [1, 0, 0, -args[1]],
         [0, -1, 0, -args[2]],
         [0, 0, -1, zposition],
         [0, 0, 0, 1]
              ])))
-    print(thetas[0,args[0]], thetas[1,args[0]], thetas[2,args[0]], thetas[3,args[0]], thetas[4,args[0]], thetas[5,args[0]])
+    # print(thetas[0,args[0]], thetas[1,args[0]], thetas[2,args[0]], thetas[3,args[0]], thetas[4,args[0]], thetas[5,args[0]])
 
-    move(Joint.WRIST1, thetas[3,args[0]])
-    move(Joint.WRIST2, thetas[4,args[0]])
-    move(Joint.WRIST3, thetas[5,args[0]])
+    move(WRIST1, thetas[3,args[0]])
+    move(WRIST2, thetas[4,args[0]])
+    move(WRIST3, thetas[5,args[0]])
 
-    move(Joint.SHOULDER_PAN, thetas[0,args[0]])
-    move(Joint.SHOULDER_LIFT, thetas[1,args[0]])
-    move(Joint.ELBOW, thetas[2,args[0]])
+    move(SHOULDER_PAN, thetas[0,args[0]])
+    move(SHOULDER_LIFT, thetas[1,args[0]])
+    move(ELBOW, thetas[2,args[0]])
     
     return thetas
 
