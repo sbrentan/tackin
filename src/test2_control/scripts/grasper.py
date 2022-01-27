@@ -12,6 +12,8 @@ import torch
 import cv2
 from cv_bridge import CvBridge
 import sys
+from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.srv import SetModelState
 
 from datetime import datetime
 
@@ -203,6 +205,10 @@ def detach_joints(box):
 
     detach_srv.call(req)
 
+def set_joint_states(arr):
+    for i in range(len(arr)):
+        move(i, arr[i])
+
 def command(cmd):
     if(len(cmd.split()) < 1):
         return
@@ -305,10 +311,36 @@ def command(cmd):
         print(joint_states[1])
 
     elif(cmd.split()[0] == "rotate"):
-        move(WRIST1, joint_states[WRIST1] - 0.5)
+        rospy.wait_for_service('/gazebo/set_model_state')
+        set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        
+        # for i in range(180):
+        state_msg = ModelState()
+        state_msg.model_name = 'orso'
+        state_msg.pose.position.x = 0.6
+        state_msg.pose.position.y = 0.7
+        state_msg.pose.position.z = 0
+        state_msg.pose.orientation.x = 0
+        state_msg.pose.orientation.y = 0
+        state_msg.pose.orientation.w = float(cmd.split()[1])
+        state_msg.pose.orientation.z = float(cmd.split()[1])
+        resp = set_state( state_msg )
+        print(resp)
+        time.sleep(0.2)
+
+
+
 
     elif(cmd == "reset"):
         reset()
+
+    elif(cmd == "dioorso"):
+        set_joint_states([0.6420331459112516, -0.44856000332471435, 2.028709678559421, 2.632259060910691, -1.5708015714139925, 
+            2.212829601314244, 2.212829601314244, -0.3999997928324186, 5.325995622307289e-06, -0.3999989075042878, 
+            -3.6077062857131637e-06, -0.4000011540877457, -2.423872540902039e-06]
+
+
+)
 
     elif(cmd == "x"):
         sys.exit()
