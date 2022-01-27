@@ -311,22 +311,24 @@ def command(cmd):
         print(joint_states[1])
 
     elif(cmd.split()[0] == "rotate"):
-        rospy.wait_for_service('/gazebo/set_model_state')
-        set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        # rospy.wait_for_service('/gazebo/set_model_state')
+        # set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         
-        # for i in range(180):
-        state_msg = ModelState()
-        state_msg.model_name = 'orso'
-        state_msg.pose.position.x = 0.6
-        state_msg.pose.position.y = 0.7
-        state_msg.pose.position.z = 0
-        state_msg.pose.orientation.x = 0
-        state_msg.pose.orientation.y = 0
-        state_msg.pose.orientation.w = float(cmd.split()[1])
-        state_msg.pose.orientation.z = float(cmd.split()[1])
-        resp = set_state( state_msg )
-        print(resp)
-        time.sleep(0.2)
+        # # for i in range(180):
+        # state_msg = ModelState()
+        # state_msg.model_name = 'orso'
+        # state_msg.pose.position.x = 0.6
+        # state_msg.pose.position.y = 0.7
+        # state_msg.pose.position.z = 0
+        # state_msg.pose.orientation.x = 0
+        # state_msg.pose.orientation.y = 0
+        # state_msg.pose.orientation.w = float(cmd.split()[1])
+        # state_msg.pose.orientation.z = float(cmd.split()[1])
+        # resp = set_state( state_msg )
+        # print(resp)
+        # time.sleep(0.2)
+
+        move(WRIST3, float(cmd.split()[1]))
 
 
 
