@@ -24,8 +24,13 @@ from sensor_msgs.msg import Image
 
 
 import kinematics as kin
+import recognizer as rec
 
 mat = np.matrix
+
+posx = 0
+posy = 0
+
 
 blocks = [ 'X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 'X1-Y2-Z2', 'X1-Y3-Z2-FILLET', 
          'X1-Y3-Z2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2' ] # class names
@@ -95,7 +100,6 @@ def joint_state_callback(msg):
     joint_states.append(msg.position[msg.name.index("elbow_joint")])
     joint_states.append(msg.position[msg.name.index("wrist_1_joint")])
     joint_states.append(msg.position[msg.name.index("wrist_2_joint")])
-    joint_states.append(msg.position[msg.name.index("wrist_3_joint")])
     joint_states.append(msg.position[msg.name.index("wrist_3_joint")])
     joint_states.append(msg.position[msg.name.index("H1_F1J2")])
     joint_states.append(msg.position[msg.name.index("H1_F1J3")])
@@ -226,6 +230,10 @@ def command(cmd):
         time.sleep(0.1)
         command("descend")
         command("open")
+    elif(cmd.split()[0] == "grasp"):
+        compute_kinematik([cmd.split()[1], posx, posy])
+
+
     elif(cmd.split()[0] == "open"):
         open_gripper()
         time.sleep(1.5)
@@ -234,14 +242,15 @@ def command(cmd):
     elif(cmd.split()[0] == "close"):
         close_gripper()
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
-        until_in_range({
-                H1_F1J2  : 0.25,
-                H1_F1J3  : 0.4,
-                H1_F2J2  : 0.25,
-                H1_F2J3  : 0.4,
-                H1_F3J2  : 0.25,
-                H1_F3J3  : 0.4,
-            })
+        # until_in_range({
+        #         H1_F1J2  : 0.25,
+        #         H1_F1J3  : 0.4,
+        #         H1_F2J2  : 0.25,
+        #         H1_F2J3  : 0.4,
+        #         H1_F3J2  : 0.25,
+        #         H1_F3J3  : 0.4,
+        #     })
+        time.sleep(2)
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
         if(len(cmd.split()) > 1):
             attach_joints(cmd.split()[1])
@@ -282,7 +291,37 @@ def command(cmd):
 
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
 
-        compute_kinematik([mode, xdist, ydist])
+        time.sleep(0.2)
+        image = CvBridge().imgmsg_to_cv2(last_image)
+        cv2.imwrite("pre_image.jpg", image)
+        angle, pose = rec.getPose(image)
+        print(angle)
+        angle = np.abs(angle)
+        angle = np.deg2rad(angle)
+        angle = round(angle, 2)
+        angle = angle % 1.57
+        print(joint_states[WRIST3])
+        move(WRIST3, joint_states[WRIST3] + angle)
+        until_in_range({WRIST3 : joint_states[WRIST3] + angle})
+        
+
+        time.sleep(2)
+        image = CvBridge().imgmsg_to_cv2(last_image)
+        cv2.imwrite("mid_image.jpg", image)
+        angle2, pose = rec.getPose(image)
+        xdiff = pose[0] * 0.04 / 2450
+        ydiff = pose[1] * 0.04 / 2450
+        print(angle, pose, xdiff, ydiff, angle2)
+        compute_kinematik([mode, xdist - xdiff, ydist - ydiff, -0.2])
+
+        # move(WRIST3, joint_states[WRIST3] + angle)
+        # until_in_range({WRIST3 : joint_states[WRIST3] + angle})
+
+        time.sleep(2)
+        image = CvBridge().imgmsg_to_cv2(last_image)
+        cv2.imwrite("post_image.jpg", image)
+
+
 
     elif(cmd == "camera"):
         camera_image = CvBridge().imgmsg_to_cv2(last_image)
@@ -297,12 +336,14 @@ def command(cmd):
         os.system("roslaunch test2_gazebo spawn_brick.launch x:="+x+" y:="+y+" name:="+name+" model:="+model+" > /dev/null")        
 
     elif(cmd == "detect"):
+        # model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu", pretrained=True)
         model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu")
         camera_image = CvBridge().imgmsg_to_cv2(last_image)
         results = model(camera_image)
         if(results.pandas().xyxy[0].empty):
             print("Nothing found")
         else:
+            print(results.pandas().xyxy)
             print(blocks[results.pandas().xyxy[0].at[0, "class"]])
             print(results.pandas().xyxy[0].at[0, "confidence"])
 
@@ -311,24 +352,11 @@ def command(cmd):
         print(joint_states[1])
 
     elif(cmd.split()[0] == "rotate"):
-        # rospy.wait_for_service('/gazebo/set_model_state')
-        # set_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-        
-        # # for i in range(180):
-        # state_msg = ModelState()
-        # state_msg.model_name = 'orso'
-        # state_msg.pose.position.x = 0.6
-        # state_msg.pose.position.y = 0.7
-        # state_msg.pose.position.z = 0
-        # state_msg.pose.orientation.x = 0
-        # state_msg.pose.orientation.y = 0
-        # state_msg.pose.orientation.w = float(cmd.split()[1])
-        # state_msg.pose.orientation.z = float(cmd.split()[1])
-        # resp = set_state( state_msg )
-        # print(resp)
-        # time.sleep(0.2)
 
-        move(WRIST3, float(cmd.split()[1]))
+        if(cmd.split()[1] == "0"):
+            move(WRIST3, float(cmd.split()[2]))
+        elif(cmd.split()[1] == "1"):
+            move(WRIST3, joint_states[WRIST3] + float(cmd.split()[2]))
 
 
 
@@ -336,13 +364,12 @@ def command(cmd):
     elif(cmd == "reset"):
         reset()
 
+
     elif(cmd == "dioorso"):
         set_joint_states([0.6420331459112516, -0.44856000332471435, 2.028709678559421, 2.632259060910691, -1.5708015714139925, 
             2.212829601314244, 2.212829601314244, -0.3999997928324186, 5.325995622307289e-06, -0.3999989075042878, 
-            -3.6077062857131637e-06, -0.4000011540877457, -2.423872540902039e-06]
+            -3.6077062857131637e-06, -0.4000011540877457, -2.423872540902039e-06])
 
-
-)
 
     elif(cmd == "x"):
         sys.exit()
@@ -355,6 +382,10 @@ def compute_kinematik(args): #BEST ARGS[0] = 6
     if(len(args) > 3):
         zposition = float(args[3])
 
+    global posx, posy
+    posx = args[1]
+    posy = args[2]
+
     # print(args)
     thetas = kin.invKine((mat([
         [1, 0, 0, -args[1]],
@@ -366,7 +397,7 @@ def compute_kinematik(args): #BEST ARGS[0] = 6
 
     move(WRIST1, thetas[3,args[0]])
     move(WRIST2, thetas[4,args[0]])
-    move(WRIST3, thetas[5,args[0]])
+    # move(WRIST3, thetas[5,args[0]])
 
     move(SHOULDER_PAN, thetas[0,args[0]])
     move(SHOULDER_LIFT, thetas[1,args[0]])

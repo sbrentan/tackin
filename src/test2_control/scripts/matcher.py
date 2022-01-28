@@ -26,9 +26,9 @@ img = cv.imread('/home/simone/tackin/cool_camera_image.jpg', 0)
 
 
 
-# template = cv.imread('/home/simone/tackin/cool_camera_image.jpg')
+template = cv.imread('/home/simone/tackin/cool_camera_image.jpg', 0)
 
-# # template = cv.cvtColor(template, cv.COLOR_RGB2GRAY)
+# template = cv.cvtColor(template, cv.COLOR_RGB2GRAY)
 
 # lower = np.array([140, 140, 140])
 # upper = np.array([170 ,170 ,170])
@@ -65,15 +65,27 @@ img = cv.imread('/home/simone/tackin/cool_camera_image.jpg', 0)
 # rotrect = cv.minAreaRect(max(cntrs, key = cv.contourArea))
 # box = cv.boxPoints(rotrect)
 # box = np.int0(box)
+# xMin = min(box[::-1, 0])
+# xMax = max(box[::-1, 0])
+# yMin = min(box[::-1, 1])
+# yMax = max(box[::-1, 1])
+# box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
+# cv.drawContours(thresh,[box],0,(0,0,255),2)
 
-# # cv.drawContours(img,[box],0,(0,0,255),2)
+# img = img[box[2][1]:box[0][1], box[0][0]:box[1][0]]
 
-# img = img[box[0][1]:box[2][1], box[0][0]:box[1][0]]
 
-# cv.imwrite("X1-Y2-Z20.jpg", img)
+# # cv.imshow("template", thresh)
+# # cv.waitKey(0)
+# # cv.destroyAllWindows()
+
+# cv.imwrite("templates/X2-Y2-Z2-FILLET-3.jpg", img)
 
 # sys.exit(0)
 
+
+
+# 245 pixel sta a 0.095 a z = -0.2 
 
 
 
@@ -93,31 +105,9 @@ for temp in templates:
 
     for meth in methods:
 
-        # img = img2.copy()
-
-
         method = eval(meth)
         # Apply template Matching
         res = cv.matchTemplate(img,template,method)
         min_val, max_val, min_loc, max_loc = cv.minMaxLoc(res)
 
         print(temp + " " +meth + " " + str(max_val))
-
-
-
-
-
-
-        # If the method is TM_SQDIFF or TM_SQDIFF_NORMED, take minimum
-        # if method in [cv.TM_SQDIFF, cv.TM_SQDIFF_NORMED]:
-        #     top_left = min_loc
-        # else:
-        #     top_left = max_loc
-        # bottom_right = (top_left[0] + w, top_left[1] + h)
-        # cv.rectangle(img,top_left, bottom_right, 255, 2)
-        # plt.subplot(121),plt.imshow(res,cmap = 'gray')
-        # plt.title('Matching Result'), plt.xticks([]), plt.yticks([])
-        # plt.subplot(122),plt.imshow(img,cmap = 'gray')
-        # plt.title('Detected Point'), plt.xticks([]), plt.yticks([])
-        # plt.suptitle(meth)
-        # plt.show()
