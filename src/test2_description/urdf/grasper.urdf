@@ -1212,7 +1212,7 @@
   <gazebo reference="camera_link">
     <material>Gazebo/Red</material>
     <sensor type="camera" name="camera">
-      <update_rate>5.0</update_rate>
+      <update_rate>100.0</update_rate>
       <camera name="head">
         <horizontal_fov>1</horizontal_fov>
         <image>

@@ -65,7 +65,14 @@ def getPose(image):
     else:
         angle = -angle
 
-    return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
+    xcenter = xMin + np.round((xMax - xMin)/2)
+    ycenter = yMin + np.round((yMax - yMin)/2)
+
+    print(xcenter, ycenter, end=" asdf ")
+    print(xMax, xMin, yMax, yMin)
+
+    # return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
+    return np.abs(angle), [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
 
 # print(angle,"deg")
 

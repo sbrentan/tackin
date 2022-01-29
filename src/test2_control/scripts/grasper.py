@@ -69,10 +69,7 @@ def init():
     H1_F3J2_pub = rospy.Publisher('/H1_F3J2_joint_position_controller/command', Float64, queue_size=10)
     H1_F3J3_pub = rospy.Publisher('/H1_F3J3_joint_position_controller/command', Float64, queue_size=10)
 
-    # rospy.init_node('supreme_commander', anonymous=True)
-    # rate = rospy.Rate(1000) # 10hz
-
-    global attach_srv, detach_srv
+    global attach_srv, detach_srv, last_updated_image
     #rospy.loginfo("Creating ServiceProxy to /link_attacher_node/attach")
     attach_srv = rospy.ServiceProxy('/link_attacher_node/attach', Attach)
     attach_srv.wait_for_service()
@@ -85,6 +82,8 @@ def init():
 
     time.sleep(1)
     rospy.loginfo("Created all the publishers")
+
+    last_updated_image = 0
 
     rospy.Subscriber("/laser/scan", LaserScan, scan_callback)
     rospy.Subscriber("/camera/image_raw", Image, camera_callback)
@@ -110,8 +109,10 @@ def joint_state_callback(msg):
 
 
 def camera_callback(rgb_msg):
-   global last_image
+   global last_image, last_updated_image
    last_image = rgb_msg
+   last_updated_image += 1
+   # print("Updated image")
 
 
 def scan_callback(msg):
@@ -271,8 +272,8 @@ def command(cmd):
         thetas = compute_kinematik([mode, xdist, ydist, -0.2])
 
 
-        xdist += 0.021
-        ydist += 0.021
+        # xdist += 0.021
+        # ydist += 0.021
 
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
 
@@ -291,35 +292,59 @@ def command(cmd):
 
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
 
-        time.sleep(0.2)
+        # lui = last_image
+        time.sleep(2)
+        # while(last_image == lui):
+            # time.sleep(2)
+
         image = CvBridge().imgmsg_to_cv2(last_image)
         cv2.imwrite("pre_image.jpg", image)
-        angle, pose = rec.getPose(image)
+        angle, pose1 = rec.getPose(image)
+
+        xdiff = pose1[1]
+        ydiff = pose1[0]
+        xdiff = xdiff * 0.143 / 418
+        ydiff = ydiff * 0.046 / 134
+        print(angle, xdiff, ydiff, pose1)
+        compute_kinematik([mode, xdist + xdiff, ydist + ydiff, -0.2], True)
+
+        # lui = last_image
+        # time.sleep(2)
+        # while(last_image == lui):
+        #     time.sleep(2)
+        # image = CvBridge().imgmsg_to_cv2(last_image)
+        # cv2.imwrite("mid_image.jpg", image)
+
         print(angle)
         angle = np.abs(angle)
         angle = np.deg2rad(angle)
         angle = round(angle, 2)
         angle = angle % 1.57
+        print(angle)
         print(joint_states[WRIST3])
         move(WRIST3, joint_states[WRIST3] + angle)
         until_in_range({WRIST3 : joint_states[WRIST3] + angle})
         
 
-        time.sleep(2)
-        image = CvBridge().imgmsg_to_cv2(last_image)
-        cv2.imwrite("mid_image.jpg", image)
-        angle2, pose = rec.getPose(image)
-        xdiff = pose[0] * 0.04 / 2450
-        ydiff = pose[1] * 0.04 / 2450
-        print(angle, pose, xdiff, ydiff, angle2)
-        compute_kinematik([mode, xdist - xdiff, ydist - ydiff, -0.2])
+        # time.sleep(2)
+        # image = CvBridge().imgmsg_to_cv2(last_image)
+        # cv2.imwrite("mid_image.jpg", image)
+        # angle2, pose = rec.getPose(image)
+        # xdiff = pose[0] * 0.095 / 2450
+        # ydiff = pose[1] * 0.095 / 2450
+        # xdiff = pose1[0] - pose[0]
+        # ydiff = pose[1] + pose1[1]
+        
 
         # move(WRIST3, joint_states[WRIST3] + angle)
         # until_in_range({WRIST3 : joint_states[WRIST3] + angle})
 
-        time.sleep(2)
-        image = CvBridge().imgmsg_to_cv2(last_image)
-        cv2.imwrite("post_image.jpg", image)
+        # lui = last_image
+        # time.sleep(2)
+        # while(last_image == lui):
+        #     time.sleep(2)
+        # image = CvBridge().imgmsg_to_cv2(last_image)
+        # cv2.imwrite("post_image.jpg", image)
 
 
 
@@ -374,7 +399,7 @@ def command(cmd):
     elif(cmd == "x"):
         sys.exit()
 
-def compute_kinematik(args): #BEST ARGS[0] = 6
+def compute_kinematik(args, ignorew3 = False): #BEST ARGS[0] = 6
     args[0] = int(args[0])
     args[1] = float(args[1]) + 0.015
     args[2] = float(args[2]) + 0.015
@@ -397,7 +422,10 @@ def compute_kinematik(args): #BEST ARGS[0] = 6
 
     move(WRIST1, thetas[3,args[0]])
     move(WRIST2, thetas[4,args[0]])
-    # move(WRIST3, thetas[5,args[0]])
+
+    defaultRot = 2.1269841707416894
+    if(not ignorew3):
+        move(WRIST3, defaultRot)
 
     move(SHOULDER_PAN, thetas[0,args[0]])
     move(SHOULDER_LIFT, thetas[1,args[0]])
