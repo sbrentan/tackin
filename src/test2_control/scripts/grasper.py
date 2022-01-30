@@ -136,6 +136,51 @@ def until_in_range(pos, max_wait = 4):
     # print()
 
 
+def rotate_wrist(angle, mode = 0): #mode:0 for absolute position, mode:1 for relative position
+    if(mode == 1):
+        angle += joint_states[WRIST3]
+
+    if(angle > np.pi):
+        angle -= np.pi
+    elif(angle < -np.pi):
+        angle += np.pi
+
+    move(WRIST3, angle)
+
+    until_in_range({WRIST3 : angle})
+
+
+def get_object_class():
+    image = CvBridge().imgmsg_to_cv2(last_image)
+    results = rec.getClass(image)
+    
+
+    max1 = 0
+    max2 = 0
+    max3 = 0
+    max4 = 0
+    max5 = 0
+    max6 = 0
+    for k, ar in results.items():
+        print(k+" -> "+str(ar))
+        max1 = max(ar[0], max1)
+        max2 = max(ar[1], max2)
+        max3 = max(ar[2], max3)
+        max4 = max(ar[3], max4)
+        max5 = min(ar[4], max5)
+        max6 = min(ar[5], max6)
+
+    for k, ar in results.items():
+        val1 = ar[0]/max1
+        val2 = ar[1]/max2
+        val3 = ar[2]/max3
+        val4 = ar[3]/max4
+        val5 = max5/ar[4]
+        val6 = max6/ar[5]
+        avg = (val1 * 0.15) + (val2 * 0.4) + (val3 * 0.15) + (val4 * 0.1) + (val5 * 0.1) + (val6 * 0.1)
+        print(k+' -> '+str(avg))
+
+
 
 def move(joint, position):
     if(joint == SHOULDER_PAN):
@@ -181,8 +226,8 @@ def open_gripper():
 def close_gripper():
     move(H1_F1J2, 0.25)
     move(H1_F1J3, 0.4)
-    move(H1_F2J2, 0.25)
-    move(H1_F2J3, 0.4)
+    move(H1_F2J2, 0)
+    move(H1_F2J3, 0)
     move(H1_F3J2, 0.25)
     move(H1_F3J3, 0.4)
 
@@ -241,6 +286,8 @@ def command(cmd):
         if(len(cmd.split()) > 1):
             detach_joints(cmd.split()[1])
     elif(cmd.split()[0] == "close"):
+        if(len(cmd.split()) > 1):
+            attach_joints(cmd.split()[1])
         close_gripper()
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
         # until_in_range({
@@ -253,8 +300,6 @@ def command(cmd):
         #     })
         time.sleep(2)
         print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
-        if(len(cmd.split()) > 1):
-            attach_joints(cmd.split()[1])
     elif(cmd[0:3] == "kin"):
         compute_kinematik(cmd.split()[1:])
     elif(cmd == "depth"):
@@ -264,8 +309,8 @@ def command(cmd):
         xdist = math.cos(rad_angle) * depth_ranges[index_min]
         ydist = math.sin(rad_angle) * depth_ranges[index_min]
         mode = 2
-        if(xdist <= 0.5 or ydist <= 0.5):
-            mode = 0
+        # if(xdist <= 0.5 or ydist <= 0.5):
+        #     mode = 0
 
         print("Found position")
         print(xdist, ydist)
@@ -301,12 +346,12 @@ def command(cmd):
         cv2.imwrite("pre_image.jpg", image)
         angle, pose1 = rec.getPose(image)
 
-        xdiff = pose1[1]
-        ydiff = pose1[0]
+        xdiff = pose1[0]
+        ydiff = pose1[1]
         xdiff = xdiff * 0.143 / 418
         ydiff = ydiff * 0.046 / 134
         print(angle, xdiff, ydiff, pose1)
-        compute_kinematik([mode, xdist + xdiff, ydist + ydiff, -0.2], True)
+        compute_kinematik([mode, xdist - xdiff, ydist + ydiff, -0.2], True)
 
         # lui = last_image
         # time.sleep(2)
@@ -319,11 +364,15 @@ def command(cmd):
         angle = np.abs(angle)
         angle = np.deg2rad(angle)
         angle = round(angle, 2)
-        angle = angle % 1.57
+        # angle = angle % 1.57
         print(angle)
         print(joint_states[WRIST3])
-        move(WRIST3, joint_states[WRIST3] + angle)
-        until_in_range({WRIST3 : joint_states[WRIST3] + angle})
+        rotate_wrist(angle, 1)
+        
+        
+        time.sleep(2)
+
+        get_object_class()
         
 
         # time.sleep(2)
@@ -378,12 +427,14 @@ def command(cmd):
 
     elif(cmd.split()[0] == "rotate"):
 
-        if(cmd.split()[1] == "0"):
-            move(WRIST3, float(cmd.split()[2]))
-        elif(cmd.split()[1] == "1"):
-            move(WRIST3, joint_states[WRIST3] + float(cmd.split()[2]))
+        rotate_wrist(float(cmd.split()[2]), int(cmd.split()[1]))
+        # if(cmd.split()[1] == "0"):
+        #     move(WRIST3, float(cmd.split()[2]))
+        # elif(cmd.split()[1] == "1"):
+        #     move(WRIST3, joint_states[WRIST3] + float(cmd.split()[2]))
 
-
+    elif(cmd == "temp"):
+        get_object_class()
 
 
     elif(cmd == "reset"):
@@ -423,9 +474,9 @@ def compute_kinematik(args, ignorew3 = False): #BEST ARGS[0] = 6
     move(WRIST1, thetas[3,args[0]])
     move(WRIST2, thetas[4,args[0]])
 
-    defaultRot = 2.1269841707416894
+    defaultRot = 2.1669866384138246 - 1.57
     if(not ignorew3):
-        move(WRIST3, defaultRot)
+        rotate_wrist(defaultRot)
 
     move(SHOULDER_PAN, thetas[0,args[0]])
     move(SHOULDER_LIFT, thetas[1,args[0]])

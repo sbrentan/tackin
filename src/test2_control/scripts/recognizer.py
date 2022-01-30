@@ -65,6 +65,12 @@ def getPose(image):
     else:
         angle = -angle
 
+    angle = np.abs(angle)
+    if(xMax - xMin < yMax - yMin):
+        angle += 90
+
+
+
     xcenter = xMin + np.round((xMax - xMin)/2)
     ycenter = yMin + np.round((yMax - yMin)/2)
 
@@ -72,14 +78,52 @@ def getPose(image):
     print(xMax, xMin, yMax, yMin)
 
     # return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
-    return np.abs(angle), [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
+    return angle-2, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
 
-# print(angle,"deg")
+def getClass(image):
+    print("Getting class of image")
+    
+    lower = np.array([140, 140, 140])
+    upper = np.array([170 ,170 ,170])
 
-# write result to disk
-# cv2.imwrite("wing2_rotrect.png", result)
+    mask = cv2.inRange(image, lower, upper) # modify your thresholds
+    inv_mask = cv2.bitwise_not(mask)
+    image = cv2.bitwise_and(image, image, mask=inv_mask)
 
-# cv2.imshow("THRESH", thresh)
-# cv2.imshow("RESULT", result)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    cv2.imwrite("gg.jpg", image)
+
+
+    methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
+            # 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
+
+    templates = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-CHAMFER-2', 'X1-Y2-Z2-TWINFILLET', 
+                 'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y3-Z2-FILLET-2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 
+                 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3', 'test', 'test2']
+
+    results = {}
+    for temp in templates:
+
+
+        template = cv2.imread('/home/simone/tackin/src/test2_control/scripts/templates/'+temp+'.jpg', 0)
+        # meth = 'cv2.TM_CCOEFF_NORMED'
+
+        results2 = []
+
+        for meth in methods:
+
+            method = eval(meth)
+            # Apply template Matching
+            res = cv2.matchTemplate(image,template,method)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+
+            # print(temp + " " +meth + " " + str(max_val))
+            if(meth in ['cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']):
+                results2.append(min_val)
+            else:
+                results2.append(max_val)
+
+        results[temp] = results2
+
+    return results

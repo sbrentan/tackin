@@ -15,6 +15,12 @@
         <pose>0 0 0 0 -0 0</pose>
       </inertial>
       <visual name="visual">
+        <material>
+          <ambient>1 1 0 1</ambient>
+          <diffuse>1 1 0 1</diffuse>
+          <specular>0.1 0.1 0.1 1</specular>
+          <emissive>0 0 0 0</emissive>
+        </material>
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh><uri>model://X2-Y2-Z2/meshes/mesh.stl</uri><scale>1.5 1.5 1.5</scale></mesh>
