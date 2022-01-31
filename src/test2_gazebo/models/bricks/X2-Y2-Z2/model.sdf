@@ -3,7 +3,7 @@
   <model name='X2-Y2-Z2'>
     <link name='link'>
       <inertial>
-        <mass>1</mass>
+        <mass>10</mass>
         <inertia>
           <ixx>0.166667</ixx>
           <ixy>0</ixy>
@@ -16,8 +16,8 @@
       </inertial>
       <visual name="visual">
         <material>
-          <ambient>1 1 0 1</ambient>
-          <diffuse>1 1 0 1</diffuse>
+          <ambient>COLOR</ambient>
+          <diffuse>COLOR</diffuse>
           <specular>0.1 0.1 0.1 1</specular>
           <emissive>0 0 0 0</emissive>
         </material>

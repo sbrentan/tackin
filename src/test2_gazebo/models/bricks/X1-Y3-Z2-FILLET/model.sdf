@@ -16,8 +16,8 @@
       </inertial>
       <visual name="visual">
         <material>
-          <ambient>1 0 0 1</ambient>
-          <diffuse>1 0 0 1</diffuse>
+          <ambient>COLOR</ambient>
+          <diffuse>COLOR</diffuse>
           <specular>0.1 0.1 0.1 1</specular>
           <emissive>0 0 0 0</emissive>
         </material>

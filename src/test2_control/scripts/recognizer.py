@@ -66,7 +66,7 @@ def getPose(image):
         angle = -angle
 
     angle = np.abs(angle)
-    if(xMax - xMin < yMax - yMin):
+    if(xMax - xMin > yMax - yMin):
         angle += 90
 
 
@@ -78,7 +78,7 @@ def getPose(image):
     print(xMax, xMin, yMax, yMin)
 
     # return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
-    return angle-2, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
+    return angle, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
 
 def getClass(image):
     print("Getting class of image")
@@ -100,13 +100,13 @@ def getClass(image):
 
     templates = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-CHAMFER-2', 'X1-Y2-Z2-TWINFILLET', 
                  'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y3-Z2-FILLET-2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 
-                 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3', 'test', 'test2']
+                 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3']
 
     results = {}
     for temp in templates:
 
 
-        template = cv2.imread('/home/simone/tackin/src/test2_control/scripts/templates/'+temp+'.jpg', 0)
+        template = cv2.imread('/home/simone/tackin/src/test2_control/scripts/templates2/'+temp+'.jpg', 0)
         # meth = 'cv2.TM_CCOEFF_NORMED'
 
         results2 = []

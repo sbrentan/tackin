@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # license removed for brevity
 import rospy
-from std_msgs.msg import Float64
 import math
 import time
 from enum import Enum
@@ -18,6 +17,7 @@ from gazebo_msgs.srv import SetModelState
 from datetime import datetime
 
 
+from std_msgs.msg import Float64
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Image
@@ -304,10 +304,10 @@ def command(cmd):
         compute_kinematik(cmd.split()[1:])
     elif(cmd == "depth"):
         index_min = np.argmin(depth_ranges)
-        angle = (index_min * 90 / nlasers)
+        angle = (index_min * 180 / nlasers)
         rad_angle = np.deg2rad(angle)
-        xdist = math.cos(rad_angle) * depth_ranges[index_min]
-        ydist = math.sin(rad_angle) * depth_ranges[index_min]
+        ydist = math.cos(rad_angle) * depth_ranges[index_min]
+        xdist = math.sin(rad_angle) * depth_ranges[index_min]
         mode = 2
         # if(xdist <= 0.5 or ydist <= 0.5):
         #     mode = 0
@@ -354,11 +354,11 @@ def command(cmd):
         compute_kinematik([mode, xdist - xdiff, ydist + ydiff, -0.2], True)
 
         # lui = last_image
-        # time.sleep(2)
+        time.sleep(2)
         # while(last_image == lui):
         #     time.sleep(2)
-        # image = CvBridge().imgmsg_to_cv2(last_image)
-        # cv2.imwrite("mid_image.jpg", image)
+        image = CvBridge().imgmsg_to_cv2(last_image)
+        cv2.imwrite("mid_image.jpg", image)
 
         print(angle)
         angle = np.abs(angle)
@@ -395,6 +395,53 @@ def command(cmd):
         # image = CvBridge().imgmsg_to_cv2(last_image)
         # cv2.imwrite("post_image.jpg", image)
 
+    elif(cmd == "dist"):
+        index_min = np.argmin(depth_ranges)
+        angle = (index_min * 180 / nlasers)
+        rad_angle = np.deg2rad(angle)
+        ydist = math.cos(rad_angle) * depth_ranges[index_min]
+        xdist = math.sin(rad_angle) * depth_ranges[index_min]
+
+        jump = 0.5
+
+        left = index_min - 1
+        dr = depth_ranges
+        while(left >= 0):
+            print(dr[left + 1], dr[left])
+            if(dr[left + 1] - dr[left] > jump or dr[left] > 100):
+                break
+            left -= 1
+
+        right = index_min + 1
+        dr = depth_ranges
+        while(right < len(dr)):
+            if(dr[right - 1] - dr[right] > jump or dr[right] > 100):
+                break
+            right += 1
+
+        left += 1
+        right -= 1
+        print(left, right)
+
+        angle = (left * 180 / nlasers)
+        rad_angle = np.deg2rad(angle)
+        yleft = math.cos(rad_angle) * depth_ranges[left]
+        xleft = math.sin(rad_angle) * depth_ranges[left]
+
+        print(angle, xleft, yleft)
+
+        angle = (right * 180 / nlasers)
+        rad_angle = np.deg2rad(angle)
+        yright = math.cos(rad_angle) * depth_ranges[right]
+        xright = math.sin(rad_angle) * depth_ranges[right]
+
+        print(angle, xright, yright)
+
+        finalx = ((xleft + xright - xdist) - xdist)/2 + xdist
+        finaly = ((yleft + yright - ydist) - ydist)/2 + ydist
+        print(finalx, finaly)
+
+        compute_kinematik([2, finaly, finalx, -0.2])
 
 
     elif(cmd == "camera"):
@@ -474,9 +521,11 @@ def compute_kinematik(args, ignorew3 = False): #BEST ARGS[0] = 6
     move(WRIST1, thetas[3,args[0]])
     move(WRIST2, thetas[4,args[0]])
 
-    defaultRot = 2.1669866384138246 - 1.57
-    if(not ignorew3):
-        rotate_wrist(defaultRot)
+    # defaultRot = 2.1669866384138246 - 1.57
+    # if(not ignorew3):
+    #     rotate_wrist(defaultRot)
+    move(WRIST3, thetas[5, args[0]])
+    rotate_wrist(thetas[5, args[0]] - 1.57)
 
     move(SHOULDER_PAN, thetas[0,args[0]])
     move(SHOULDER_LIFT, thetas[1,args[0]])
