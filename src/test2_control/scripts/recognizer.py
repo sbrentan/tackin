@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from scipy import stats
+import sys
 
 def getPose(image):
 
@@ -17,7 +19,7 @@ def getPose(image):
 
 
     hh, ww, cc = img.shape
-    print(hh, ww, cc)
+    # print(hh, ww, cc)
 
     # convert to gray
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -66,7 +68,9 @@ def getPose(image):
         angle = -angle
 
     angle = np.abs(angle)
-    if(xMax - xMin > yMax - yMin):
+    if(xMax - xMin > yMax - yMin and angle > 45):
+        angle += 90
+    elif(xMax - xMin < yMax - yMin and angle < 45):
         angle += 90
 
 
@@ -74,8 +78,8 @@ def getPose(image):
     xcenter = xMin + np.round((xMax - xMin)/2)
     ycenter = yMin + np.round((yMax - yMin)/2)
 
-    print(xcenter, ycenter, end=" asdf ")
-    print(xMax, xMin, yMax, yMin)
+    # print(xcenter, ycenter, end=" asdf ")
+    # print(xMax, xMin, yMax, yMin)
 
     # return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
     return angle, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
@@ -92,7 +96,42 @@ def getClass(image):
 
     image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
+    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # threshold the grayscale image
+    ret, thresh = cv2.threshold(image,0,255,0)
+
+    # find outer contour
+    cntrs = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cntrs = cntrs[0] if len(cntrs) == 2 else cntrs[1]
+
+
+
+    # get rotated rectangle from outer contour
+    rotrect = cv2.minAreaRect(max(cntrs, key = cv2.contourArea))
+    box = cv2.boxPoints(rotrect)
+    box = np.int0(box)
+
+    xMin = min(box[::-1, 0])
+    xMax = max(box[::-1, 0])
+    yMin = min(box[::-1, 1])
+    yMax = max(box[::-1, 1])
+    # box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
+
+    print(image[yMin:yMax, xMin:xMax])
+
+    m = stats.mode(image[yMin:yMax, xMin:xMax])[0][0]
+    m = stats.mode(m)[0][0]
+    print(m)
+    m = 200 - m
+
+    a = image[yMin:yMax, xMin:xMax]
+    image[yMin:yMax, xMin:xMax] = np.where(a == 0, a, a + m)
+
+    
     cv2.imwrite("gg.jpg", image)
+    # cv2.imwrite("a.jpg", a)
+    # sys.exit(0)
 
 
     methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']

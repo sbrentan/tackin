@@ -59,7 +59,7 @@ def init(nbricks):
 	for i in range(nbricks):
 
 		while(True):
-			ypos = np.random.uniform(0, 0.9)
+			ypos = np.random.uniform(0.1, 0.9)
 			xpos = np.random.uniform(-0.9, 0.9)
 			if(np.abs(xpos) <= 0.3 and ypos <= 0.3):
 				continue

@@ -70,18 +70,19 @@ def init():
     H1_F3J3_pub = rospy.Publisher('/H1_F3J3_joint_position_controller/command', Float64, queue_size=10)
 
     global attach_srv, detach_srv, last_updated_image
-    #rospy.loginfo("Creating ServiceProxy to /link_attacher_node/attach")
     attach_srv = rospy.ServiceProxy('/link_attacher_node/attach', Attach)
     attach_srv.wait_for_service()
     rospy.loginfo("Created ServiceProxy to /link_attacher_node/attach")
 
-    #rospy.loginfo("Creating ServiceProxy to /link_attacher_node/detach")
     detach_srv = rospy.ServiceProxy('/link_attacher_node/detach', Attach)
     detach_srv.wait_for_service()
     rospy.loginfo("Created ServiceProxy to /link_attacher_node/detach")
 
+    # camera_srv = rospy.ServiceProxy('/link_attacher_node/detach', Attach)
+    # camera_srv.wait_for_service()
+    # rospy.loginfo("Created ServiceProxy to /link_attacher_node/detach")
+
     time.sleep(1)
-    rospy.loginfo("Created all the publishers")
 
     last_updated_image = 0
 
@@ -120,9 +121,18 @@ def scan_callback(msg):
     depth_ranges = msg.ranges
     nlasers = len(msg.ranges)
 
-def until_in_range(pos, max_wait = 4):
-    # print("Initial joint states: ")
-    # print(joint_states)
+def until_in_range(pos, max_wait = 8):
+    if type(pos) is not dict:
+        print("not dict")
+        newpos = {
+            SHOULDER_PAN : pos[0],
+            SHOULDER_LIFT: pos[1],
+            ELBOW        : pos[2],
+            WRIST1       : pos[3],
+            WRIST2       : pos[4]
+        }
+        pos = newpos
+
     for i in range(max_wait * 10):
         in_position = True
         for k, v in pos.items():
@@ -131,23 +141,21 @@ def until_in_range(pos, max_wait = 4):
                 break;
         if(in_position): break
         time.sleep(0.1)
-    # print("Final joint states")
-    # print(joint_states)
-    # print()
 
 
-def rotate_wrist(angle, mode = 0): #mode:0 for absolute position, mode:1 for relative position
+def rotate_wrist(angle, mode = 0, wait = True): #mode:0 for absolute position, mode:1 for relative position
     if(mode == 1):
         angle += joint_states[WRIST3]
 
     if(angle > np.pi):
-        angle -= np.pi
+        angle -= np.pi * 2
     elif(angle < -np.pi):
-        angle += np.pi
+        angle += np.pi * 2
 
     move(WRIST3, angle)
 
-    until_in_range({WRIST3 : angle})
+    if(wait):
+        until_in_range({WRIST3 : angle})
 
 
 def get_object_class():
@@ -222,6 +230,15 @@ def open_gripper():
     move(H1_F2J3, 0)
     move(H1_F3J2, -0.4)
     move(H1_F3J3, 0)
+    until_in_range({
+        H1_F1J2  : -0.4,
+        H1_F1J3  : 0,
+        H1_F2J2  : -0.4,
+        H1_F2J3  : 0,
+        H1_F3J2  : -0.4,
+        H1_F3J3  : 0,
+    })
+
 
 def close_gripper():
     move(H1_F1J2, 0.25)
@@ -230,6 +247,15 @@ def close_gripper():
     move(H1_F2J3, 0)
     move(H1_F3J2, 0.25)
     move(H1_F3J3, 0.4)
+    # print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
+    until_in_range({
+        H1_F1J2  : 0.25,
+        H1_F1J3  : 0.4,
+        H1_F2J2  : 0,
+        H1_F2J3  : 0,
+        H1_F3J2  : 0.25,
+        H1_F3J3  : 0.4,
+    })
 
 def attach_joints(box):
 
@@ -262,85 +288,41 @@ def set_joint_states(arr):
 def command(cmd):
     if(len(cmd.split()) < 1):
         return
-    elif(cmd == "rise"):
-        move(SHOULDER_LIFT, -0.785)
-        time.sleep(0.1)
-        move(ELBOW, 0.785)
-    elif(cmd == "descend"):
-        move(ELBOW, 0)
-        time.sleep(0.1)
-        move(SHOULDER_LIFT, 0)
-        time.sleep(0.3)
-    elif(cmd == "release"):
-        move(SHOULDER_PAN, 1.57)
-        time.sleep(0.1)
-        command("descend")
-        command("open")
-    elif(cmd.split()[0] == "grasp"):
-        compute_kinematik([cmd.split()[1], posx, posy])
+    # elif(cmd == "release"):
+
+    elif(cmd.split()[0] == "high"):
+        mode = 2
+        if(len(cmd.split()) > 1): mode = cmd.split()[1]
+        thetas = compute_kinematik([mode, posx, posy, -0.2], True, True, 2)
+
+    elif(cmd.split()[0] == "low"):
+        mode = 2
+        if(len(cmd.split()) > 1): mode = cmd.split()[1]
+        thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 2)
+        thetas = compute_kinematik([mode, posx, posy], True, True, 2)
 
 
     elif(cmd.split()[0] == "open"):
         open_gripper()
-        time.sleep(1.5)
         if(len(cmd.split()) > 1):
             detach_joints(cmd.split()[1])
+
     elif(cmd.split()[0] == "close"):
         if(len(cmd.split()) > 1):
             attach_joints(cmd.split()[1])
         close_gripper()
-        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
-        # until_in_range({
-        #         H1_F1J2  : 0.25,
-        #         H1_F1J3  : 0.4,
-        #         H1_F2J2  : 0.25,
-        #         H1_F2J3  : 0.4,
-        #         H1_F3J2  : 0.25,
-        #         H1_F3J3  : 0.4,
-        #     })
-        time.sleep(2)
-        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
+        
     elif(cmd[0:3] == "kin"):
         compute_kinematik(cmd.split()[1:])
+
     elif(cmd == "depth"):
-        index_min = np.argmin(depth_ranges)
-        angle = (index_min * 180 / nlasers)
-        rad_angle = np.deg2rad(angle)
-        ydist = math.cos(rad_angle) * depth_ranges[index_min]
-        xdist = math.sin(rad_angle) * depth_ranges[index_min]
+        open_gripper()
+
         mode = 2
-        # if(xdist <= 0.5 or ydist <= 0.5):
-        #     mode = 0
 
-        print("Found position")
-        print(xdist, ydist)
-        thetas = compute_kinematik([mode, xdist, ydist, -0.2])
+        command("dist")
 
-
-        # xdist += 0.021
-        # ydist += 0.021
-
-        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
-
-        print("Required position: ")
-        print(thetas[0,mode], thetas[1,mode], thetas[2,mode], thetas[3,mode], thetas[4,mode], thetas[5,mode])
-        print()
-
-        until_in_range({
-                SHOULDER_PAN  : thetas[SHOULDER_PAN, mode],
-                SHOULDER_LIFT  : thetas[SHOULDER_LIFT, mode],
-                ELBOW         : thetas[ELBOW, mode],
-                WRIST1        : thetas[WRIST1, mode],
-                WRIST2        : thetas[WRIST2, mode],
-                WRIST3        : thetas[WRIST3, mode],
-            })
-
-        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
-
-        # lui = last_image
         time.sleep(2)
-        # while(last_image == lui):
-            # time.sleep(2)
 
         image = CvBridge().imgmsg_to_cv2(last_image)
         cv2.imwrite("pre_image.jpg", image)
@@ -351,49 +333,24 @@ def command(cmd):
         xdiff = xdiff * 0.143 / 418
         ydiff = ydiff * 0.046 / 134
         print(angle, xdiff, ydiff, pose1)
-        compute_kinematik([mode, xdist - xdiff, ydist + ydiff, -0.2], True)
+        compute_kinematik([mode, posx - xdiff, posy + ydiff, -0.2], True)
 
-        # lui = last_image
-        time.sleep(2)
-        # while(last_image == lui):
-        #     time.sleep(2)
-        image = CvBridge().imgmsg_to_cv2(last_image)
-        cv2.imwrite("mid_image.jpg", image)
+        # time.sleep(2)
+        # image = CvBridge().imgmsg_to_cv2(last_image)
+        # cv2.imwrite("mid_image.jpg", image)
 
         print(angle)
         angle = np.abs(angle)
         angle = np.deg2rad(angle)
         angle = round(angle, 2)
-        # angle = angle % 1.57
         print(angle)
         print(joint_states[WRIST3])
         rotate_wrist(angle, 1)
-        
         
         time.sleep(2)
 
         get_object_class()
         
-
-        # time.sleep(2)
-        # image = CvBridge().imgmsg_to_cv2(last_image)
-        # cv2.imwrite("mid_image.jpg", image)
-        # angle2, pose = rec.getPose(image)
-        # xdiff = pose[0] * 0.095 / 2450
-        # ydiff = pose[1] * 0.095 / 2450
-        # xdiff = pose1[0] - pose[0]
-        # ydiff = pose[1] + pose1[1]
-        
-
-        # move(WRIST3, joint_states[WRIST3] + angle)
-        # until_in_range({WRIST3 : joint_states[WRIST3] + angle})
-
-        # lui = last_image
-        # time.sleep(2)
-        # while(last_image == lui):
-        #     time.sleep(2)
-        # image = CvBridge().imgmsg_to_cv2(last_image)
-        # cv2.imwrite("post_image.jpg", image)
 
     elif(cmd == "dist"):
         index_min = np.argmin(depth_ranges)
@@ -402,20 +359,24 @@ def command(cmd):
         ydist = math.cos(rad_angle) * depth_ranges[index_min]
         xdist = math.sin(rad_angle) * depth_ranges[index_min]
 
-        jump = 0.5
+        print("Found position: ", xdist, ydist)
+
+        jump = 0.05
 
         left = index_min - 1
         dr = depth_ranges
         while(left >= 0):
             print(dr[left + 1], dr[left])
-            if(dr[left + 1] - dr[left] > jump or dr[left] > 100):
+            if(np.abs(dr[left + 1] - dr[left]) > jump):
                 break
             left -= 1
 
+        print('------')
         right = index_min + 1
         dr = depth_ranges
         while(right < len(dr)):
-            if(dr[right - 1] - dr[right] > jump or dr[right] > 100):
+            print(dr[right - 1], dr[right])
+            if(np.abs(dr[right - 1] - dr[right]) > jump):
                 break
             right += 1
 
@@ -428,20 +389,21 @@ def command(cmd):
         yleft = math.cos(rad_angle) * depth_ranges[left]
         xleft = math.sin(rad_angle) * depth_ranges[left]
 
-        print(angle, xleft, yleft)
+        # print(angle, xleft, yleft)
 
         angle = (right * 180 / nlasers)
         rad_angle = np.deg2rad(angle)
         yright = math.cos(rad_angle) * depth_ranges[right]
         xright = math.sin(rad_angle) * depth_ranges[right]
 
-        print(angle, xright, yright)
+        # print(angle, xright, yright)
 
         finalx = ((xleft + xright - xdist) - xdist)/2 + xdist
         finaly = ((yleft + yright - ydist) - ydist)/2 + ydist
         print(finalx, finaly)
 
-        compute_kinematik([2, finaly, finalx, -0.2])
+        mode = 2
+        thetas = compute_kinematik([mode, finaly, finalx, -0.2])
 
 
     elif(cmd == "camera"):
@@ -497,40 +459,48 @@ def command(cmd):
     elif(cmd == "x"):
         sys.exit()
 
-def compute_kinematik(args, ignorew3 = False): #BEST ARGS[0] = 6
-    args[0] = int(args[0])
-    args[1] = float(args[1]) + 0.015
-    args[2] = float(args[2]) + 0.015
+def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8): #BEST ARGS[0] = 6
+    mode = int(args[0])
+    x = float(args[1])
+    y = float(args[2])
     zposition = -0.38
     if(len(args) > 3):
         zposition = float(args[3])
 
     global posx, posy
-    posx = args[1]
-    posy = args[2]
+    posx = x
+    posy = y
 
     # print(args)
     thetas = kin.invKine((mat([
-        [1, 0, 0, -args[1]],
-        [0, -1, 0, -args[2]],
+        [1, 0, 0, -x],
+        [0, -1, 0, -y],
         [0, 0, -1, zposition],
         [0, 0, 0, 1]
              ])))
-    # print(thetas[0,args[0]], thetas[1,args[0]], thetas[2,args[0]], thetas[3,args[0]], thetas[4,args[0]], thetas[5,args[0]])
 
-    move(WRIST1, thetas[3,args[0]])
-    move(WRIST2, thetas[4,args[0]])
+    move(WRIST1, thetas[3,mode])
+    move(WRIST2, thetas[4,mode])
 
-    # defaultRot = 2.1669866384138246 - 1.57
-    # if(not ignorew3):
-    #     rotate_wrist(defaultRot)
-    move(WRIST3, thetas[5, args[0]])
-    rotate_wrist(thetas[5, args[0]] - 1.57)
+    w3rot = thetas[SHOULDER_PAN,mode] + 1.57
+    if(not ignorew3):
+        rotate_wrist(w3rot, 0, False)
 
-    move(SHOULDER_PAN, thetas[0,args[0]])
-    move(SHOULDER_LIFT, thetas[1,args[0]])
-    move(ELBOW, thetas[2,args[0]])
+    move(SHOULDER_PAN, thetas[0,mode])
+    move(SHOULDER_LIFT, thetas[1,mode])
+    move(ELBOW, thetas[2,mode])
+
+    if(wait):
+        until_in_range({
+            SHOULDER_PAN  : thetas[SHOULDER_PAN, mode],
+            SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
+            ELBOW         : thetas[ELBOW, mode],
+            WRIST1        : thetas[WRIST1, mode],
+            WRIST2        : thetas[WRIST2, mode],
+            WRIST3        : w3rot,
+        }, max_wait)
     
+    # map thetas
     return thetas
 
 
