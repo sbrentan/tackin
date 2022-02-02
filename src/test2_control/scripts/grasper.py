@@ -1,40 +1,41 @@
 #!/usr/bin/env python
-# license removed for brevity
+
+import signal
+import json
 import rospy
 import math
 import time
 from enum import Enum
-from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
+from gazebo_ros_link_attacher.srv import Attach, AttachRequest #, AttachResponse
 import os
 import numpy as np
 import torch
 import cv2
 from cv_bridge import CvBridge
 import sys
-from gazebo_msgs.msg import ModelState 
-from gazebo_msgs.srv import SetModelState
+from scipy.spatial import distance
 
 from datetime import datetime
 
 
+# from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.srv import GetModelState
 from std_msgs.msg import Float64
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import PointCloud2
 
 
 import kinematics as kin
 import recognizer as rec
 
-mat = np.matrix
 
-posx = 0
-posy = 0
-
-
-blocks = [ 'X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 'X1-Y2-Z2', 'X1-Y3-Z2-FILLET', 
+BLOCKS = [ 'X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 'X1-Y2-Z2', 'X1-Y3-Z2-FILLET', 
          'X1-Y3-Z2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2' ] # class names
 
+BRICK_HEIGHT_1 = 0.0565
+BRICK_HEIGHT_2 = 0.0855
 
 SHOULDER_PAN = 0
 SHOULDER_LIFT = 1
@@ -50,8 +51,18 @@ H1_F3J2 = 10
 H1_F3J3 = 11
 
 
+mat = np.matrix
+
+attached_brick = 0
+posx = 0
+posy = 0
+
+
 
 def init():
+    signal.signal(signal.SIGINT, kill)
+    signal.signal(signal.SIGTERM, kill)
+
     rospy.init_node('supreme_commander')
 
     global shoulder_pan_pub, shoulder_lift_pub, elbow_pub, wrist1_pub, wrist2_pub, wrist3_pub
@@ -69,7 +80,7 @@ def init():
     H1_F3J2_pub = rospy.Publisher('/H1_F3J2_joint_position_controller/command', Float64, queue_size=10)
     H1_F3J3_pub = rospy.Publisher('/H1_F3J3_joint_position_controller/command', Float64, queue_size=10)
 
-    global attach_srv, detach_srv, last_updated_image
+    global attach_srv, detach_srv, mstate_srv, last_updated_image, bridge
     attach_srv = rospy.ServiceProxy('/link_attacher_node/attach', Attach)
     attach_srv.wait_for_service()
     rospy.loginfo("Created ServiceProxy to /link_attacher_node/attach")
@@ -78,9 +89,9 @@ def init():
     detach_srv.wait_for_service()
     rospy.loginfo("Created ServiceProxy to /link_attacher_node/detach")
 
-    # camera_srv = rospy.ServiceProxy('/link_attacher_node/detach', Attach)
-    # camera_srv.wait_for_service()
-    # rospy.loginfo("Created ServiceProxy to /link_attacher_node/detach")
+    mstate_srv = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+    mstate_srv.wait_for_service()
+    rospy.loginfo("Created ServiceProxy to /gazebo/get_model_state")
 
     time.sleep(1)
 
@@ -89,6 +100,21 @@ def init():
     rospy.Subscriber("/laser/scan", LaserScan, scan_callback)
     rospy.Subscriber("/camera/image_raw", Image, camera_callback)
     rospy.Subscriber("/joint_states", JointState, joint_state_callback)
+    rospy.Subscriber('/camera/scan', LaserScan, depth_callback)
+
+    bridge = CvBridge()
+
+    global configuration
+    if(len(sys.argv) > 1):
+        filename = sys.argv[1]
+    else:
+        filename = "/home/simone/tackin/src/test2_control/scripts/configuration.json"
+    f = open(filename)
+    configuration = json.load(f)
+    f.close()
+
+def kill(_signo, _stack_frame):
+    sys.exit(0)
 
 
 def joint_state_callback(msg):
@@ -120,6 +146,10 @@ def scan_callback(msg):
     global depth_ranges, nlasers
     depth_ranges = msg.ranges
     nlasers = len(msg.ranges)
+
+def depth_callback(msg):
+    global hdist
+    hdist = min(msg.ranges)
 
 def until_in_range(pos, max_wait = 8):
     if type(pos) is not dict:
@@ -156,10 +186,42 @@ def rotate_wrist(angle, mode = 0, wait = True): #mode:0 for absolute position, m
 
     if(wait):
         until_in_range({WRIST3 : angle})
+    return angle
+
+def rotate(joint, angle, wait = True):
+
+    pre_angle = angle
+    curr_rot = joint_states[joint]
+    if(angle > np.pi * 2):
+        angle -= np.pi * 2
+    elif(angle < -np.pi * 2):
+        angle += np.pi * 2
+    else:
+        if(angle > curr_rot and angle - curr_rot > np.pi*2 - (angle - curr_rot) ):
+            new = curr_rot - (np.pi*2 - (angle - curr_rot))
+            if(new > np.pi * 2):
+                angle = new
+        elif(angle < curr_rot and curr_rot - angle > np.pi*2 - (curr_rot - angle)):
+            new = curr_rot + (np.pi*2 - (curr_rot - angle))
+            if(new < np.pi * 2):
+                angle = new
+
+
+
+    # curr_rot = joint_states[joint]
+    # print("Joint " + str(joint) + " curr " + str(curr_rot) + " angle " + str(angle))
+    # if(np.abs(curr_rot - angle) > np.abs(curr_rot - (np.pi * 2 - angle))):
+    #     angle = np.pi * 2 - angle
+    print("Angle difference "+str(pre_angle)+","+str(angle)+" from "+str(curr_rot)+" for "+str(joint))
+    move(joint, angle)
+
+    if(wait):
+        until_in_range({joint : angle})
+    return angle
 
 
 def get_object_class():
-    image = CvBridge().imgmsg_to_cv2(last_image)
+    image = bridge.imgmsg_to_cv2(last_image)
     results = rec.getClass(image)
     
 
@@ -247,7 +309,6 @@ def close_gripper():
     move(H1_F2J3, 0)
     move(H1_F3J2, 0.25)
     move(H1_F3J3, 0.4)
-    # print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
     until_in_range({
         H1_F1J2  : 0.25,
         H1_F1J3  : 0.4,
@@ -257,63 +318,128 @@ def close_gripper():
         H1_F3J3  : 0.4,
     })
 
-def attach_joints(box):
+def attach_joints(nbrick):
 
     # Link them
-    rospy.loginfo("Attaching wrist3 and box")
+    rospy.loginfo("Attaching wrist3 and brick" + str(nbrick))
     req = AttachRequest()
     req.model_name_1 = "grasper"
     req.link_name_1 = "wrist_3_link"
-    req.model_name_2 = box
+    req.model_name_2 = "brick" + str(nbrick)
     req.link_name_2 = "link"
 
     attach_srv.call(req)
+    global attached_brick
+    attached_brick = nbrick
 
-def detach_joints(box):
+def detach_joints():
 
+    global attached_brick
+    nbrick = attached_brick
     # Link them
-    rospy.loginfo("Detaching wrist3 and box")
+    rospy.loginfo("Detaching wrist3 and " + str(nbrick))
     req = AttachRequest()
     req.model_name_1 = "grasper"
     req.link_name_1 = "wrist_3_link"
-    req.model_name_2 = box
+    req.model_name_2 = "brick" + str(nbrick)
     req.link_name_2 = "link"
 
     detach_srv.call(req)
+    attached_brick = 0
+
+def get_model_id():
+    names = []
+    for i in range(len(configuration['bricks'])):
+        names.append("brick"+str(i+1))
+
+    curr_pos = (posx, posy, 0)
+    min_brick = 0
+    min_dist = 100
+    for name in names:
+        mstate = mstate_srv.call(name, "")
+        m_pos = (mstate.pose.position.x, mstate.pose.position.y, 0)
+        d = distance.euclidean(curr_pos, m_pos)
+        print(curr_pos, m_pos, d)
+        if(d < min_dist):
+            min_dist = d
+            min_brick = int(name[5:])
+
+    print("brick" + str(min_brick))
+    return min_brick
+
 
 def set_joint_states(arr):
     for i in range(len(arr)):
         move(i, arr[i])
 
+def application():
+    command("kin 2 0.5 0.5 0")
+
+    nbricks = len(configuration["bricks"])
+    for i in range(nbricks):
+        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
+        command("depth")
+
+        command("low")
+
+        command("close " + str(get_model_id()))
+
+        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
+
+        command("high")
+
+        x, y, z = configuration["bricks"][attached_brick-1]["pos"].split()
+        command("kin 2 "+str(x)+" "+str(y)+" -0.2")
+
+        command("low")
+
+        command("open")
+
+        command("high")
+
+        print("Insert command: ", end="")
+        cmd = input()
+        command(cmd)
+
+
+
 def command(cmd):
     if(len(cmd.split()) < 1):
         return
-    # elif(cmd == "release"):
+
+    elif(cmd == "mstate"):
+        get_model_id()
 
     elif(cmd.split()[0] == "high"):
         mode = 2
         if(len(cmd.split()) > 1): mode = cmd.split()[1]
+        thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 2)
         thetas = compute_kinematik([mode, posx, posy, -0.2], True, True, 2)
 
     elif(cmd.split()[0] == "low"):
         mode = 2
         if(len(cmd.split()) > 1): mode = cmd.split()[1]
-        thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 2)
+        thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 4)
         thetas = compute_kinematik([mode, posx, posy], True, True, 2)
 
 
     elif(cmd.split()[0] == "open"):
         open_gripper()
-        if(len(cmd.split()) > 1):
-            detach_joints(cmd.split()[1])
+        detach_joints()
 
     elif(cmd.split()[0] == "close"):
         if(len(cmd.split()) > 1):
-            attach_joints(cmd.split()[1])
+            attach_joints(int(cmd.split()[1]))
         close_gripper()
         
     elif(cmd[0:3] == "kin"):
         compute_kinematik(cmd.split()[1:])
+
+    elif(cmd == "hdist"):
+        print(hdist)
+
+    elif(cmd == "app"):
+        application()
 
     elif(cmd == "depth"):
         open_gripper()
@@ -324,7 +450,7 @@ def command(cmd):
 
         time.sleep(2)
 
-        image = CvBridge().imgmsg_to_cv2(last_image)
+        image = bridge.imgmsg_to_cv2(last_image)
         cv2.imwrite("pre_image.jpg", image)
         angle, pose1 = rec.getPose(image)
 
@@ -336,7 +462,7 @@ def command(cmd):
         compute_kinematik([mode, posx - xdiff, posy + ydiff, -0.2], True)
 
         # time.sleep(2)
-        # image = CvBridge().imgmsg_to_cv2(last_image)
+        # image = bridge.imgmsg_to_cv2(last_image)
         # cv2.imwrite("mid_image.jpg", image)
 
         print(angle)
@@ -407,7 +533,7 @@ def command(cmd):
 
 
     elif(cmd == "camera"):
-        camera_image = CvBridge().imgmsg_to_cv2(last_image)
+        camera_image = bridge.imgmsg_to_cv2(last_image)
         cv2.imwrite("cool_camera_image.jpg", camera_image)
 
     elif(cmd.split()[0] == "spawnbox"):
@@ -421,13 +547,13 @@ def command(cmd):
     elif(cmd == "detect"):
         # model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu", pretrained=True)
         model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu")
-        camera_image = CvBridge().imgmsg_to_cv2(last_image)
+        camera_image = bridge.imgmsg_to_cv2(last_image)
         results = model(camera_image)
         if(results.pandas().xyxy[0].empty):
             print("Nothing found")
         else:
             print(results.pandas().xyxy)
-            print(blocks[results.pandas().xyxy[0].at[0, "class"]])
+            print(BLOCKS[results.pandas().xyxy[0].at[0, "class"]])
             print(results.pandas().xyxy[0].at[0, "confidence"])
 
     elif(cmd == "test"):
@@ -479,24 +605,34 @@ def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8): #BEST 
         [0, 0, 0, 1]
              ])))
 
-    move(WRIST1, thetas[3,mode])
-    move(WRIST2, thetas[4,mode])
+    w1rot = rotate(WRIST1, thetas[3,mode], False)
+    w2rot = rotate(WRIST2, thetas[4,mode], False)
 
-    w3rot = thetas[SHOULDER_PAN,mode] + 1.57
+    w3rot = thetas[SHOULDER_PAN,mode] + np.pi/2
+    if(y < 0):
+        w3rot -= np.pi
     if(not ignorew3):
-        rotate_wrist(w3rot, 0, False)
+        w3rot = rotate_wrist(w3rot, 0, False)
 
-    move(SHOULDER_PAN, thetas[0,mode])
+    pan_rot = rotate(SHOULDER_PAN, thetas[0,mode], False)
     move(SHOULDER_LIFT, thetas[1,mode])
     move(ELBOW, thetas[2,mode])
 
-    if(wait):
+    if(wait and ignorew3):
         until_in_range({
-            SHOULDER_PAN  : thetas[SHOULDER_PAN, mode],
+            SHOULDER_PAN  : pan_rot,
             SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
             ELBOW         : thetas[ELBOW, mode],
-            WRIST1        : thetas[WRIST1, mode],
-            WRIST2        : thetas[WRIST2, mode],
+            WRIST1        : w1rot,
+            WRIST2        : w2rot,
+        }, max_wait)
+    elif(wait):
+        until_in_range({
+            SHOULDER_PAN  : pan_rot,
+            SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
+            ELBOW         : thetas[ELBOW, mode],
+            WRIST1        : w1rot,
+            WRIST2        : w2rot,
             WRIST3        : w3rot,
         }, max_wait)
     

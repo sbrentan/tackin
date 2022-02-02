@@ -3,12 +3,13 @@
 import time
 import numpy as np
 
+import json
 import sys
 import rospy, tf
 from gazebo_msgs.srv import DeleteModel, SpawnModel, SpawnModelRequest, SpawnModelResponse, GetModelState 
 from geometry_msgs.msg import *
 
-bricks = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
+BRICKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
           'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
 
 # def sub_callback(state):
@@ -25,7 +26,7 @@ bricks = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWIN
 
 
 
-def init(nbricks):
+def init(nbricks, names = []):
 
 	rospy.init_node('supreme_spawner')
 	rospy.wait_for_service("gazebo/spawn_sdf_model")
@@ -79,7 +80,10 @@ def init(nbricks):
 		# print(xpos, ypos)
 		# sys.exit(0)
 
-		brick = bricks[np.random.randint(0,len(bricks))]
+		if(len(names) == 0):
+			brick = BRICKS[np.random.randint(0,len(BRICKS))]
+		else:
+			brick = names[i]
 		with open("/home/simone/tackin/src/test2_gazebo/models/bricks/"+brick+"/model.sdf", "r") as f: product_xml = f.read()
 
 		color = str(round(np.random.uniform(0,1),2)) + " " + str(round(np.random.uniform(0,1),2)) + " " + str(round(np.random.uniform(0,1),2)) + " 1"
@@ -106,14 +110,34 @@ def init(nbricks):
 
 
 if __name__ == '__main__':
-    try:
-    	fixedpos = []
-    	if(len(sys.argv) > 1):
-    		if(len(sys.argv) > 2):
-    			fixedpos = [float(sys.argv[2]), float(sys.argv[3])]
-    		init(int(sys.argv[1]))
-    	else:
-        	init(10)
+	try:
+		fixedpos = []
+		if(len(sys.argv) > 1):
+			if(sys.argv[1] == "n"):
+				init(int(sys.argv[1]))
 
-    except rospy.ROSInterruptException:
-        pass
+			elif(sys.argv[1] == "one" and len(sys.argv) > 3):
+				fixedpos = [float(sys.argv[2]), float(sys.argv[3])]
+				init(1)
+
+			elif(sys.argv[1] == "file"):
+				if(len(sys.argv) > 2):
+					filename = sys.argv[2]
+				else:
+					filename = "/home/simone/tackin/src/test2_control/scripts/configuration.json"
+				f = open(filename)
+
+				names = []
+				data = json.load(f)
+				nbricks = len(data['bricks'])
+				for brick in data['bricks']:
+					names.append(brick['model'])
+				f.close()
+				print(nbricks, names)
+				init(nbricks, names)
+
+		else:
+			init(10)
+
+	except rospy.ROSInterruptException:
+		pass
