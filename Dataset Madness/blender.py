@@ -1,6 +1,6 @@
 import bpy
 import math, mathutils
-import os, random
+import os, time
 import json
 import numpy as np
 from mathutils.bvhtree import BVHTree
@@ -8,31 +8,31 @@ from mathutils.bvhtree import BVHTree
 mode  = 'train' # FLAGS : train or val
 worldPath = 'C:/Users/alexr/Desktop/Robotica/bg/'
 objsPath = 'C:/Users/alexr/Desktop/Robotica/blends/'
-imgPath = f'C:/Users/alexr/Desktop/Robotica/Dataset/images2/{mode}/'
-labelPath = f'C:/Users/alexr/Desktop/Robotica/Dataset/labels2/{mode}/'
-kittiCalibsPath = 'C:/Users/alexr/Desktop/Robotica/Dataset/kittiCalibs/'
-kittiLabelsPath = 'C:/Users/alexr/Desktop/Robotica/Dataset/kittiLabels/'
+imgPath = f'C:/Users/alexr/Desktop/Robotica/Dataset/images/{mode}/'
+labelPath = f'C:/Users/alexr/Desktop/Robotica/Dataset/labels/{mode}/'
 
 print("hello")
 
-picsNum = 100
+rotv = 0.1
+picsNum = 10
 # Number of objects in a scene
-objsNum = 3
+objsNum = 1
 if objsNum > len(os.listdir(objsPath)):
     objsNum = len(os.listdir(objsPath)) 
 cameraLens = 15
-img_w=1500
-img_h=1500
+img_w=500
+img_h=500
 # Worlds changing frequency
 freq_CTW = 1
 objNameList = []
 
+nondeletable = ["Camera","Light","light"]
 
 """
 Worlds(HDR Files) Source :
 https://hdrihaven.com/
 """
-def loadWorlds():
+"""def loadWorlds():
     world = bpy.context.scene.world
     world.use_nodes = True
     enode = bpy.context.scene.world.node_tree.nodes.new('ShaderNodeTexEnvironment')
@@ -48,7 +48,7 @@ def changeTheWorld():
         if wd.name.endswith('hdr'):
             break
     bpy.context.scene.world.node_tree.nodes['Environment Texture'].image = wd
-    
+"""    
 def loadObjs():
     objsList = os.listdir(objsPath)
     for objName in objsList:
@@ -59,7 +59,7 @@ def loadObjs():
             data_to.objects = [name for name in data_from.objects if name.startswith(objN)]
     #with open(cocoYaml,'w',encoding='utf-8') as fc:
         #yaml.dump(objNameList,fc)
-        materials = []
+        """materials = []
         for i in range(100):
             MatName = "mat"+str(i)
             material = bpy.data.materials.new(MatName)
@@ -70,50 +70,60 @@ def loadObjs():
             materials.append(material)
 
         for objMat in bpy.data.objects:
-            if(objMat.name != 'Camera'):
-                objMat.active_material = random.choice(materials)
+            if(objMat.name not in nondeletable):
+                objMat.active_material = random.choice(materials)"""
 
 
 def changeObjs():
     for obj in bpy.context.collection.objects:
-        if obj.name != 'Camera':
+        if obj.name not in nondeletable:
             bpy.context.collection.objects.unlink(obj)
     nameList = []
     while len(nameList) < objsNum:
-        obj = random.choice(bpy.data.objects)
-        if not (obj.name in nameList) and obj.name != 'Camera':
+        #np.random.seed(time.process_time())
+        obj = np.random.choice(bpy.data.objects)
+        if not (obj.name in nameList) and obj.name not in nondeletable:
             bpy.context.collection.objects.link(obj)
             nameList.append(obj.name)
 
 
 def loadCamera():
+    light_data = bpy.data.lights.new(name="Light",type="POINT")
+    light_data.energy = 20
+    light_object = bpy.data.objects.new('light', light_data)
+    bpy.context.scene.collection.objects.link(light_object)
+
     camera_data = bpy.data.cameras.new(name='Camera')
     camera_data.lens = cameraLens
     camera_object = bpy.data.objects.new('Camera', camera_data)
     camera_object.rotation_euler[0] = math.pi/2
     bpy.context.scene.collection.objects.link(camera_object)
     for obj in bpy.data.objects:
-        if obj.name != 'Camera':
+        if obj.name not in nondeletable:
             obj.parent = bpy.data.objects['Camera'] 
 
 def randomPos():
     for obj in bpy.context.collection.objects:
-        if obj.name != 'Camera':
+        if obj.name not in nondeletable:
             obj.select_set(True)
             while True:              
                 try:
                     scale = math.sqrt(max(obj.dimensions))*bpy.data.objects['Camera'].data.lens
-                    obj.location = (0,0,-0.08*scale)
+                    obj.location = (0,0,-0.1)
                     break
                 except:
                     continue              
-            bpy.ops.object.randomize_transform(random_seed = random.randint(0,100), loc=(0.24,0.1,0.05), rot=(3,3,3), scale=(1,1,1))  
+            bpy.ops.object.randomize_transform(random_seed = np.random.randint(0,100), loc=(0.24,0.1,0), rot=(rotv,rotv,rotv)) #loc=(0.24,0.1,0.05),  
+            desloc = obj.location
+            print(desloc)
+            desloc[2] = desloc[2] - 0.4
+            #obj.location = desloc
         else:
             obj.rotation_euler[2] = 4*random.uniform(-0.7,0.7)
             
 def snapIt(scene, idNum):
     for obj in bpy.context.collection.objects:
-        if obj.name != 'Camera':
+        if obj.name not in nondeletable:
             obj.select_set(False)
             
     imId = f'{imgPath}{idNum}.png'
@@ -128,8 +138,7 @@ def labelIt(idNum):
     scene = bpy.context.scene
     cam_ob = bpy.context.scene.camera
     imLabel2dPath = f'{labelPath}{idNum}.txt'
-    imLabel3dPath = f'{kittiLabelsPath}{idNum}.txt'
-    with open(imLabel2dPath,'w',encoding='utf-8') as f2, open(imLabel3dPath,'w',encoding='utf-8') as f3:  
+    with open(imLabel2dPath,'w',encoding='utf-8') as f2:  
         for obj in bpy.context.collection.objects:
             if obj.name == 'Camera':
                 continue
@@ -205,17 +214,11 @@ def labelIt(idNum):
             beta = np.arctan(locx/locz) 
             alpha = (np.pi+beta)-(np.pi+r_y)
             objLabel2d = f'{objNameList.index(obj.name)} {nX} {nY} {nW} {nH}'
-            objLabel3d = f'{obj.name} 0.0 0 {alpha} {X} {Y} {X+Width} {Y+Height} {dimx} {dimy} {dimz} {locx} {-locy} {-locz} {r_y}'
-            #objLabel3d = obj.matrix_world[0][0:3]
             
             #print(objLabel3d)
             obj.select_set(False)
             f2.write(objLabel2d+'\n')
-            f3.write(objLabel3d+'\n')  
-            #f3.write(f'{obj.name} {R} {euX} {euY} {euZ} \n')
         f2.close()
-        f3.close()
-
 def calibCamera():
     cam = bpy.data.objects['Camera']
     camd = cam.data
@@ -259,9 +262,10 @@ def calibCamera():
         return calList
       
 def clearAll():
-    for obj in bpy.data.worlds["World"].node_tree.nodes:
+    """for obj in bpy.data.worlds["World"].node_tree.nodes:
         if(obj.name!="World Output"):
             bpy.data.worlds["World"].node_tree.nodes.remove(obj)
+    """
     for obj in bpy.data.objects:
         bpy.data.objects.remove(obj)
     for img in bpy.data.images:
@@ -279,7 +283,7 @@ def checkOverlaps():
     # Get the objects
     bvh = []
     for obj in bpy.context.collection.objects:
-        if obj.name != 'Camera':
+        if obj.name not in nondeletable:
             # Get the geometry in world coordinates
             vert = [obj.matrix_world @ v.co for v in obj.data.vertices] 
             poly = [p.vertices for p in obj.data.polygons]
@@ -288,15 +292,13 @@ def checkOverlaps():
             bvh.append(BVHTree.FromPolygons(vert, poly))
     for i in range(1,objsNum):
         for j in range(i+1,objsNum):
-            if(bvh[i].overlap(bvh[j])):
+            if( bvh[i].name not in nondeletable and bvh[j].name not in nondeletable and bvh[i].overlap(bvh[j])):
                 return True
     return False
                   
 def main():
-    #bpy.data.worlds['World'].use_nodes = True
-    #bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value=[0.289,0.270,0.197,1]
     clearAll()
-    loadWorlds()
+    #loadWorlds()
     loadObjs()
     loadCamera()
     scene = bpy.context.scene
@@ -306,12 +308,14 @@ def main():
     scene.camera = scene.objects['Camera']
     scene.render.resolution_x = img_w
     scene.render.resolution_y = img_h
-    K = calibCamera()
-    changeTheWorld()
+    #bpy.data.worlds['World'].use_nodes = True
+    #bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value=[0.153,0.153,0.153,1]
+    #changeTheWorld()
     cont = 0
     for i in range(picsNum):
-        if i%freq_CTW == 0:
+        """if i%freq_CTW == 0:
             changeTheWorld()
+        """
         over = True
         while over:
             changeObjs()
@@ -321,10 +325,6 @@ def main():
         cont-=1
         snapIt(scene, i)
         labelIt(i)# <- TODO
-        calId =  f'{kittiCalibsPath}{i}.txt'
-        with open(calId,'w',encoding='utf-8') as fc:
-            for p in K:
-                fc.writelines(p)
     print(cont)
     #clearAll() 
 if __name__ == '__main__':
