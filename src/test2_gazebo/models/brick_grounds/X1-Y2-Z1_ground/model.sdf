@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version="1.4">
+   <model name="X1-Y2-Z1_ground">
+      <static>true</static>
+      <link name="link">
+         <collision name="collision">
+            <geometry>
+               <plane>
+                  <normal>0 0 1</normal>
+                  <size>0.3 0.3</size>
+               </plane>
+            </geometry>
+            <surface>
+               <friction>
+                  <ode>
+                     <mu>100</mu>
+                     <mu2>50</mu2>
+                  </ode>
+               </friction>
+            </surface>
+         </collision>
+         <visual name="visual">
+            <cast_shadows>false</cast_shadows>
+            <pose>0 0 0.001 0 0 3.14</pose>
+            <geometry>
+               <plane>
+                  <normal>0 0 1</normal>
+                  <size>0.3 0.3</size>
+               </plane>
+            </geometry>
+            <material>
+               <script>
+                  <uri>model://X1-Y2-Z1_ground/materials/scripts</uri>
+                  <uri>model://X1-Y2-Z1_ground/materials/textures/</uri>
+                  <name>X1-Y2-Z1_ground/Image</name>
+               </script>
+            </material>
+         </visual>
+      </link>
+   </model>
+</sdf>

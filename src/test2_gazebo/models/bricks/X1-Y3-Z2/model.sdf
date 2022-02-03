@@ -3,7 +3,7 @@
   <model name='X1-Y3-Z2'>
     <link name='link'>
       <inertial>
-        <mass>10</mass>
+        <mass>1</mass>
         <inertia>
           <ixx>0.166667</ixx>
           <ixy>0</ixy>

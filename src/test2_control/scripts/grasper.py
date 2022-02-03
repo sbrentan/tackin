@@ -29,10 +29,8 @@ from sensor_msgs.msg import PointCloud2
 
 import kinematics as kin
 import recognizer as rec
+import spawner    as spa
 
-
-BLOCKS = [ 'X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 'X1-Y2-Z2', 'X1-Y3-Z2-FILLET', 
-         'X1-Y3-Z2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2' ] # class names
 
 BRICK_HEIGHT_1 = 0.0565
 BRICK_HEIGHT_2 = 0.0855
@@ -50,9 +48,19 @@ H1_F2J3 = 9
 H1_F3J2 = 10
 H1_F3J3 = 11
 
+BLOCKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
+          'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
+
+BLOCKS_HEIGHT = [BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,
+                 BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2]
+
+
+nblocks = np.zeros(11)
 
 mat = np.matrix
 
+brick_rot = 0
+attached_model = -1
 attached_brick = 0
 posx = 0
 posy = 0
@@ -153,7 +161,7 @@ def depth_callback(msg):
 
 def until_in_range(pos, max_wait = 8):
     if type(pos) is not dict:
-        print("not dict")
+        # print("not dict")
         newpos = {
             SHOULDER_PAN : pos[0],
             SHOULDER_LIFT: pos[1],
@@ -212,7 +220,7 @@ def rotate(joint, angle, wait = True):
     # print("Joint " + str(joint) + " curr " + str(curr_rot) + " angle " + str(angle))
     # if(np.abs(curr_rot - angle) > np.abs(curr_rot - (np.pi * 2 - angle))):
     #     angle = np.pi * 2 - angle
-    print("Angle difference "+str(pre_angle)+","+str(angle)+" from "+str(curr_rot)+" for "+str(joint))
+    # print("Angle difference "+str(pre_angle)+","+str(angle)+" from "+str(curr_rot)+" for "+str(joint))
     move(joint, angle)
 
     if(wait):
@@ -221,6 +229,9 @@ def rotate(joint, angle, wait = True):
 
 
 def get_object_class():
+
+    brick_dist = hdist
+
     image = bridge.imgmsg_to_cv2(last_image)
     results = rec.getClass(image)
     
@@ -240,6 +251,7 @@ def get_object_class():
         max5 = min(ar[4], max5)
         max6 = min(ar[5], max6)
 
+    avgs = []
     for k, ar in results.items():
         val1 = ar[0]/max1
         val2 = ar[1]/max2
@@ -247,8 +259,47 @@ def get_object_class():
         val4 = ar[3]/max4
         val5 = max5/ar[4]
         val6 = max6/ar[5]
-        avg = (val1 * 0.15) + (val2 * 0.4) + (val3 * 0.15) + (val4 * 0.1) + (val5 * 0.1) + (val6 * 0.1)
+        avg = (val1 * 0.05) + (val2 * 0.4) + (val3 * 0.05) + (val4 * 0.4) + (val5 * 0.05) + (val6 * 0.05)
+        avgs.append(avg)
         print(k+' -> '+str(avg))
+
+    global attached_model, brick_rot
+    m = np.argmax(avgs)
+    if(m == 4 or m == 8 or m == 14):
+        brick_rot = 180
+    elif(m == 13):
+        brick_rot = 90
+    elif(m == 15):
+        brick_rot = 270
+
+    old_m = m
+    temp = 0
+    if(m > 3): temp-=1
+    if(m > 7): temp-=1
+    if(m > 12): temp-=1
+    if(m > 13): temp-=1
+    if(m > 14): temp-=1
+    m += temp
+
+    attached_model = m
+    print("Prev att mod: " + str(attached_model))
+
+    hbrick = 0.32 - brick_dist
+    if(np.abs(hbrick - BRICK_HEIGHT_1) > np.abs(hbrick - BRICK_HEIGHT_2)):
+        corr_brick = BLOCKS[attached_model].replace("Z1", "Z2")
+    else:
+        corr_brick = BLOCKS[attached_model].replace("Z2", "Z1")
+        
+    if(corr_brick == "X1-Y2-Z2-CHAMFER"):
+        if(np.abs(avgs[5] - avgs[old_m]) < 0.01):
+            corr_brick = "X1-Y2-Z2-TWINFILLET"
+            print("Corrected from X1-Y2-Z2-CHAMFER to X1-Y2-Z2-TWINFILLET")
+
+    print("Corr brick: " + corr_brick)
+    attached_model = BLOCKS.index(corr_brick)
+    print("Corr att mod: " + str(attached_model))
+    print("Max arg: " + str(attached_model) + " " + BLOCKS[attached_model] + " with rot " + str(brick_rot))
+
 
 
 
@@ -334,7 +385,7 @@ def attach_joints(nbrick):
 
 def detach_joints():
 
-    global attached_brick
+    global attached_brick, attached_model, brick_rot
     nbrick = attached_brick
     # Link them
     rospy.loginfo("Detaching wrist3 and " + str(nbrick))
@@ -346,6 +397,8 @@ def detach_joints():
 
     detach_srv.call(req)
     attached_brick = 0
+    attached_model = -1
+    brick_rot = 0
 
 def get_model_id():
     names = []
@@ -388,8 +441,13 @@ def application():
 
         command("high")
 
-        x, y, z = configuration["bricks"][attached_brick-1]["pos"].split()
+        global attached_model
+        x, y = spa.get_xy_ground_pos(attached_model)
+        z = -0.38 + (nblocks[attached_model] * BLOCKS_HEIGHT[attached_model])
+        nblocks[attached_model] += 1
         command("kin 2 "+str(x)+" "+str(y)+" -0.2")
+
+        command("kin 2 "+str(x)+" "+str(y)+" " + str(z))
 
         command("low")
 
@@ -397,9 +455,9 @@ def application():
 
         command("high")
 
-        print("Insert command: ", end="")
-        cmd = input()
-        command(cmd)
+        # print("Insert command: ", end="")
+        # cmd = input()
+        # command(cmd)
 
 
 
@@ -413,14 +471,14 @@ def command(cmd):
     elif(cmd.split()[0] == "high"):
         mode = 2
         if(len(cmd.split()) > 1): mode = cmd.split()[1]
-        thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 2)
-        thetas = compute_kinematik([mode, posx, posy, -0.2], True, True, 2)
+        thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 4)
+        thetas = compute_kinematik([mode, posx, posy, -0.2], True, True, 4)
 
     elif(cmd.split()[0] == "low"):
         mode = 2
         if(len(cmd.split()) > 1): mode = cmd.split()[1]
         thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 4)
-        thetas = compute_kinematik([mode, posx, posy], True, True, 2)
+        thetas = compute_kinematik([mode, posx, posy], True, True, 4)
 
 
     elif(cmd.split()[0] == "open"):
@@ -434,6 +492,9 @@ def command(cmd):
         
     elif(cmd[0:3] == "kin"):
         compute_kinematik(cmd.split()[1:])
+
+    elif(cmd[0:3] == "kan"):
+        compute_kinematik(cmd.split()[1:], False, True, 10)
 
     elif(cmd == "hdist"):
         print(hdist)
@@ -465,12 +526,12 @@ def command(cmd):
         # image = bridge.imgmsg_to_cv2(last_image)
         # cv2.imwrite("mid_image.jpg", image)
 
-        print(angle)
+        # print(angle)
         angle = np.abs(angle)
         angle = np.deg2rad(angle)
         angle = round(angle, 2)
-        print(angle)
-        print(joint_states[WRIST3])
+        # print(angle)
+        # print(joint_states[WRIST3])
         rotate_wrist(angle, 1)
         
         time.sleep(2)
@@ -492,23 +553,23 @@ def command(cmd):
         left = index_min - 1
         dr = depth_ranges
         while(left >= 0):
-            print(dr[left + 1], dr[left])
+            # print(dr[left + 1], dr[left])
             if(np.abs(dr[left + 1] - dr[left]) > jump):
                 break
             left -= 1
 
-        print('------')
+        # print('------')
         right = index_min + 1
         dr = depth_ranges
         while(right < len(dr)):
-            print(dr[right - 1], dr[right])
+            # print(dr[right - 1], dr[right])
             if(np.abs(dr[right - 1] - dr[right]) > jump):
                 break
             right += 1
 
         left += 1
         right -= 1
-        print(left, right)
+        # print(left, right)
 
         angle = (left * 180 / nlasers)
         rad_angle = np.deg2rad(angle)

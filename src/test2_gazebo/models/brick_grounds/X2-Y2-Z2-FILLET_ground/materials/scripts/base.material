@@ -1,0 +1,17 @@
+material X2-Y2-Z2-FILLET_ground/Image
+  {
+    technique
+    {
+      pass
+      {
+        ambient 1 1 1 1.000000
+        diffuse 1 1 1 1.000000
+        specular 0.03 0.03 0.03 1.000000 
+
+        texture_unit
+        {
+          texture X2-Y2-Z2-FILLET_ground.png
+        }
+      }
+    }
+  }

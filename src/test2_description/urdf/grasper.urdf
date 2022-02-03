@@ -51,7 +51,7 @@
     <child link="shoulder_link"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.1273"/>
     <axis xyz="0 0 1"/>
-    <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="2.16"/>
+    <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="6"/><!-- 2.16 -->
     <dynamics damping="0.0" friction="0.0"/>
   </joint>
   <link name="shoulder_link">
@@ -1266,7 +1266,7 @@
         </range>
       </ray>
       <always_on>1</always_on>
-      <update_rate>1</update_rate>
+      <update_rate>10</update_rate>
       <visualize>false</visualize>
 
       <plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">

@@ -118,7 +118,7 @@ def getClass(image):
     yMax = max(box[::-1, 1])
     # box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
 
-    print(image[yMin:yMax, xMin:xMax])
+    # print(image[yMin:yMax, xMin:xMax])
 
     m = stats.mode(image[yMin:yMax, xMin:xMax])[0][0]
     m = stats.mode(m)[0][0]
