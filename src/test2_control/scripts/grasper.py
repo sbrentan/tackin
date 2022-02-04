@@ -15,11 +15,14 @@ from cv_bridge import CvBridge
 import sys
 from scipy.spatial import distance
 
+import asyncio
+import threading
+
 from datetime import datetime
 
 
-# from gazebo_msgs.msg import ModelState 
-from gazebo_msgs.srv import GetModelState
+from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.srv import GetModelState, SetModelState
 from std_msgs.msg import Float64
 from sensor_msgs.msg import JointState
 from sensor_msgs.msg import LaserScan
@@ -88,7 +91,7 @@ def init():
     H1_F3J2_pub = rospy.Publisher('/H1_F3J2_joint_position_controller/command', Float64, queue_size=10)
     H1_F3J3_pub = rospy.Publisher('/H1_F3J3_joint_position_controller/command', Float64, queue_size=10)
 
-    global attach_srv, detach_srv, mstate_srv, last_updated_image, bridge
+    global attach_srv, detach_srv, mstate_srv, last_updated_image, bridge, set_state_srv
     attach_srv = rospy.ServiceProxy('/link_attacher_node/attach', Attach)
     attach_srv.wait_for_service()
     rospy.loginfo("Created ServiceProxy to /link_attacher_node/attach")
@@ -100,6 +103,10 @@ def init():
     mstate_srv = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
     mstate_srv.wait_for_service()
     rospy.loginfo("Created ServiceProxy to /gazebo/get_model_state")
+
+    rospy.wait_for_service('/gazebo/set_model_state')    
+    set_state_srv = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+    rospy.loginfo("Created ServiceProxy to /gazebo/set_model_state")
 
     time.sleep(1)
 
@@ -182,19 +189,25 @@ def until_in_range(pos, max_wait = 8):
 
 
 def rotate_wrist(angle, mode = 0, wait = True): #mode:0 for absolute position, mode:1 for relative position
+    # if(mode == 1):
+    #     angle += joint_states[WRIST3]
+
+    # if(angle > np.pi):
+    #     angle -= np.pi * 2
+    # elif(angle < -np.pi):
+    #     angle += np.pi * 2
+
+    # move(WRIST3, angle)
+
+    # if(wait):
+    #     until_in_range({WRIST3 : angle})
+    # return angle
+
     if(mode == 1):
         angle += joint_states[WRIST3]
 
-    if(angle > np.pi):
-        angle -= np.pi * 2
-    elif(angle < -np.pi):
-        angle += np.pi * 2
-
-    move(WRIST3, angle)
-
-    if(wait):
-        until_in_range({WRIST3 : angle})
-    return angle
+    
+    return rotate(WRIST3, angle, wait)
 
 def rotate(joint, angle, wait = True):
 
@@ -265,12 +278,12 @@ def get_object_class():
 
     global attached_model, brick_rot
     m = np.argmax(avgs)
-    if(m == 4 or m == 8 or m == 14):
-        brick_rot = 180
-    elif(m == 13):
-        brick_rot = 90
-    elif(m == 15):
-        brick_rot = 270
+    if(m == 4 or m == 8 or m == 14):#180
+        brick_rot = np.pi
+    elif(m == 13):#-90
+        brick_rot = -np.pi/2
+    elif(m == 15):#90
+        brick_rot = np.pi/2
 
     old_m = m
     temp = 0
@@ -295,13 +308,34 @@ def get_object_class():
             corr_brick = "X1-Y2-Z2-TWINFILLET"
             print("Corrected from X1-Y2-Z2-CHAMFER to X1-Y2-Z2-TWINFILLET")
 
+    elif(corr_brick == "X1-Y2-Z1-CHAMFER"):
+        corr_brick = "X1-Y2-Z1"
+
     print("Corr brick: " + corr_brick)
     attached_model = BLOCKS.index(corr_brick)
     print("Corr att mod: " + str(attached_model))
     print("Max arg: " + str(attached_model) + " " + BLOCKS[attached_model] + " with rot " + str(brick_rot))
 
+def rotate_brick(r,p,ry, name = ""):
+    global set_state_srv, mstate_srv
 
+    if(len(name) == 0):
+        name = 'brick'+str(attached_brick)
+    ms2 = mstate_srv(name, "wrist_3_link")
+    # print(ms2)
 
+    x,y,z = ms2.pose.position.x, ms2.pose.position.y, ms2.pose.position.z
+    state_msg = ModelState()
+    state_msg.model_name = name
+    state_msg.pose.position.x = x
+    state_msg.pose.position.y = y - 0.05
+    state_msg.pose.position.z = z
+    state_msg.pose.orientation.x = 0 + r
+    state_msg.pose.orientation.y = np.pi + p
+    state_msg.pose.orientation.z = -np.pi + ry
+    state_msg.pose.orientation.w = 0
+    state_msg.reference_frame = "wrist_3_link"
+    resp = set_state_srv( state_msg )
 
 def move(joint, position):
     if(joint == SHOULDER_PAN):
@@ -350,7 +384,7 @@ def open_gripper():
         H1_F2J3  : 0,
         H1_F3J2  : -0.4,
         H1_F3J3  : 0,
-    })
+    }, 3)
 
 
 def close_gripper():
@@ -367,7 +401,7 @@ def close_gripper():
         H1_F2J3  : 0,
         H1_F3J2  : 0.25,
         H1_F3J3  : 0.4,
-    })
+    }, 3)
 
 def attach_joints(nbrick):
 
@@ -383,16 +417,19 @@ def attach_joints(nbrick):
     global attached_brick
     attached_brick = nbrick
 
-def detach_joints():
+def detach_joints(name = ""):
+
+    if(len(name) == 0):
+        name = "brick" + str(nbrick)
 
     global attached_brick, attached_model, brick_rot
     nbrick = attached_brick
     # Link them
-    rospy.loginfo("Detaching wrist3 and " + str(nbrick))
+    rospy.loginfo("Detaching wrist3 and " + name)
     req = AttachRequest()
     req.model_name_1 = "grasper"
     req.link_name_1 = "wrist_3_link"
-    req.model_name_2 = "brick" + str(nbrick)
+    req.model_name_2 = name
     req.link_name_2 = "link"
 
     detach_srv.call(req)
@@ -420,44 +457,55 @@ def get_model_id():
     print("brick" + str(min_brick))
     return min_brick
 
+def print_time():
+    print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
 
 def set_joint_states(arr):
     for i in range(len(arr)):
         move(i, arr[i])
 
 def application():
-    command("kin 2 0.5 0.5 0")
+    compute_kinematik([2, 0, 0.5, -0.3], False, True, 7)
 
     nbricks = len(configuration["bricks"])
     for i in range(nbricks):
-        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
+        compute_kinematik([2, 0, 0.5, -0.2], False, False, 3)
+
         command("depth")
 
         command("low")
 
         command("close " + str(get_model_id()))
 
-        print("Current Time = ", datetime.now().strftime("%H:%M:%S"))
-
+        print_time()
         command("high")
 
-        global attached_model
+        global attached_model, brick_rot, rec_thread
+
+        print_time()
+        rec_thread.join()
+        print_time()
+        print(brick_rot, attached_model)
+
+
         x, y = spa.get_xy_ground_pos(attached_model)
         z = -0.38 + (nblocks[attached_model] * BLOCKS_HEIGHT[attached_model])
-        nblocks[attached_model] += 1
+        # nblocks[attached_model] += 1
         command("kin 2 "+str(x)+" "+str(y)+" -0.2")
+        print("ROT1: "+str(joint_states[WRIST3]))
+        rotate_wrist(brick_rot, 1, True)
+        print("ROT2: "+str(joint_states[WRIST3]))
 
-        command("kin 2 "+str(x)+" "+str(y)+" " + str(z))
 
-        command("low")
+        command("kan 2 "+str(x)+" "+str(y)+" " + str(z))
 
         command("open")
 
         command("high")
 
-        # print("Insert command: ", end="")
-        # cmd = input()
-        # command(cmd)
+        print("Insert command: ", end="")
+        cmd = input()
+        command(cmd)
 
 
 
@@ -472,7 +520,7 @@ def command(cmd):
         mode = 2
         if(len(cmd.split()) > 1): mode = cmd.split()[1]
         thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 4)
-        thetas = compute_kinematik([mode, posx, posy, -0.2], True, True, 4)
+        thetas = compute_kinematik([mode, posx, posy, -0.2], True, True, 2)
 
     elif(cmd.split()[0] == "low"):
         mode = 2
@@ -480,21 +528,45 @@ def command(cmd):
         thetas = compute_kinematik([mode, posx, posy, -0.3], True, True, 4)
         thetas = compute_kinematik([mode, posx, posy], True, True, 4)
 
+    elif(cmd.split()[0] == "gmstate"):
+        command("depth")
+
+        # command("low")
+
+        # command("close " + str(get_model_id()))
+
+        command("turn")
+
+    elif(cmd.split()[0] == "turn"):
+        ab = attached_brick
+        if(attached_brick == 0):
+            ab = get_model_id()
+        if(len(cmd.split()) > 1):
+            ab = int(cmd.split()[1])
+        ms = mstate_srv("brick"+str(ab), "")
+        # print(ms)
+        if(len(cmd.split()) < 5):
+            r, p, y = 0, -np.pi, np.pi
+        else:
+            r, p, y = cmd.split()[2:]
+        rotate_brick(float(r), float(p), float(y), "brick"+str(ab))
+
 
     elif(cmd.split()[0] == "open"):
         open_gripper()
-        detach_joints()
+        if(len(cmd.split()) > 1):
+            detach_joints(cmd.split()[1])
 
     elif(cmd.split()[0] == "close"):
         if(len(cmd.split()) > 1):
             attach_joints(int(cmd.split()[1]))
         close_gripper()
         
-    elif(cmd[0:3] == "kin"):
-        compute_kinematik(cmd.split()[1:])
-
-    elif(cmd[0:3] == "kan"):
+    elif(cmd[0:3] == "kin"): #resets wrist3
         compute_kinematik(cmd.split()[1:], False, True, 10)
+
+    elif(cmd[0:3] == "kan"): #ignores wrist3
+        compute_kinematik(cmd.split()[1:], True, True, 10)
 
     elif(cmd == "hdist"):
         print(hdist)
@@ -533,10 +605,12 @@ def command(cmd):
         # print(angle)
         # print(joint_states[WRIST3])
         rotate_wrist(angle, 1)
-        
+
         time.sleep(2)
 
-        get_object_class()
+        global rec_thread
+        rec_thread = threading.Thread(target=get_object_class, args=(), kwargs={})
+        rec_thread.start()
         
 
     elif(cmd == "dist"):
@@ -666,6 +740,14 @@ def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8): #BEST 
         [0, 0, 0, 1]
              ])))
 
+
+    # thetas = kin.invKine((mat([
+    #     [1, 0, -1, -x],
+    #     [0, 0, -1, -y],
+    #     [0, 1, 0, zposition],
+    #     [0, 0, 0, 1]
+    #          ])))
+
     w1rot = rotate(WRIST1, thetas[3,mode], False)
     w2rot = rotate(WRIST2, thetas[4,mode], False)
 
@@ -696,6 +778,8 @@ def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8): #BEST 
             WRIST2        : w2rot,
             WRIST3        : w3rot,
         }, max_wait)
+
+    # print("Resulting theta 6: " + str(thetas[5,mode]) + ", w3rot: " + str(w3rot))
     
     # map thetas
     return thetas
