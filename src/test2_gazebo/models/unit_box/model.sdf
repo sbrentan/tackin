@@ -5,7 +5,6 @@
       <inertial>
         <mass>5</mass>
         <inertia>
-      <inertial>
         <mass>1</mass>
           <ixx>0.166667</ixx>
           <ixy>0</ixy>

@@ -2,6 +2,9 @@
 <sdf version="1.4">
   <world name="default">
     <plugin name="ros_link_attacher_plugin" filename="libgazebo_ros_link_attacher.so"/>
+    <scene>
+      <shadows>0</shadows>
+    </scene>
     <include>
       <uri>model://ground_plane</uri>
     </include>

@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 import sys
-from matplotlib import pyplot as plt
+from scipy import stats
 
 img = cv.imread('/home/simone/tackin/cool_camera_image.jpg')
 # img2 = img.copy()
@@ -55,18 +55,30 @@ cntrs = cntrs[0] if len(cntrs) == 2 else cntrs[1]
 rotrect = cv.minAreaRect(max(cntrs, key = cv.contourArea))
 box = cv.boxPoints(rotrect)
 box = np.int0(box)
-xMin = min(box[::-1, 0]) - 20
-xMax = max(box[::-1, 0]) + 20
-yMin = min(box[::-1, 1]) - 20
-yMax = max(box[::-1, 1]) + 20
+xMin = min(box[::-1, 0])
+xMax = max(box[::-1, 0])
+yMin = min(box[::-1, 1])
+yMax = max(box[::-1, 1])
 box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
-cv.drawContours(thresh,[box],0,(0,0,255),2)
+# cv.drawContours(thresh,[box],0,(0,0,255),2)
 
-img = img[box[2][1]:box[0][1], box[0][0]:box[1][0]]
+box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
 
-cv.imwrite("templates/test2.jpg", img)
-# cv.imshow("template", thresh)
-# cv.imshow("cut", img)
+m = stats.mode(img[yMin:yMax, xMin:xMax])[0][0]
+m = stats.mode(m)[0][0]
+# print(m)
+m = 200 - m
+
+a = img[yMin:yMax, xMin:xMax]
+img[yMin:yMax, xMin:xMax] = np.where(a == 0, a, a + m)
+
+# yMax = yMax - int(((0.0855 - 0.0565) / 0.0855) * (yMax - yMin))
+
+marco = img[yMin+2:yMax-1, xMin+2:xMax-1]
+
+# cv.imwrite("templates/test2.jpg", img)
+# cv.imshow("template", marco)
+cv.imwrite("templates2/ppo.jpg", marco)
 # cv.waitKey(0)
 # cv.destroyAllWindows()
 

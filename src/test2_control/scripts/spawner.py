@@ -76,10 +76,20 @@ def spawn_bricks(nbricks, names = []):
 		else:
 			brick = names[i]
 
+		YANGLES = [np.pi/2, 0]
+		if(not("FILLET" in brick or "CHAMFER" in brick)):
+			YANGLES.append(np.pi)
+
 		with open("/home/simone/tackin/src/test2_gazebo/models/bricks/"+brick+"/model.sdf", "r") as f: brick_xml = f.read()
 
-		color = str(round(np.random.uniform(0,1),2)) + " " + str(round(np.random.uniform(0,1),2)) + " " + str(round(np.random.uniform(0,1),2)) + " 1"
+		r1 = round(np.random.uniform(0,1),2)
+		r2 = round(np.random.uniform(0,1),2)
+		r3 = round(np.random.uniform(0,1),2)
+		if(r1 < 170 and r1 > 130 and r2 < 170 and r2 > 130 and r3 < 170 and r3 > 130):
+			r3 += 60
+		color = str(r1) + " " + str(r2) + " " + str(r3) + " 1"
 		brick_xml = brick_xml.replace("COLOR", color)
+		brick_xml = brick_xml.replace("BITMASK", str(2**(i+1)))
 
 
 		req = SpawnModelRequest()
@@ -87,10 +97,12 @@ def spawn_bricks(nbricks, names = []):
 		req.model_xml = brick_xml
 		req.initial_pose.position.x = xpos
 		req.initial_pose.position.y = ypos
-		req.initial_pose.position.z = 0
+		req.initial_pose.position.z = 0.05
 
 		angle = np.random.randint(0, 360)
-		q2 = tf.transformations.quaternion_from_euler(0.0, 0.0, np.deg2rad(angle))
+		yangle = np.random.randint(0, len(YANGLES))
+
+		q2 = tf.transformations.quaternion_from_euler(0.0, YANGLES[yangle], np.deg2rad(angle))
 		req.initial_pose.orientation.x = q2[0]
 		req.initial_pose.orientation.y = q2[1]
 		req.initial_pose.orientation.z = q2[2]
@@ -143,22 +155,24 @@ def get_models(args):
 if __name__ == '__main__':
 	try:
 		fixedpos = []
+		init()
+		spawn_grounds()
 		if(len(sys.argv) > 1):
+
 			if(sys.argv[1] == "n"):
-				init(int(sys.argv[1]))
+				spawn_bricks(int(sys.argv[2]))
 
 			elif(sys.argv[1] == "one" and len(sys.argv) > 3):
 				fixedpos = [float(sys.argv[2]), float(sys.argv[3])]
-				init(1)
+				spawn_bricks(1)
+
 
 			elif(sys.argv[1] == "file"):
-				init()
 				nbricks, names = get_models(sys.argv)
-				spawn_grounds()
 				spawn_bricks(nbricks, names)
 
 		else:
-			init(10)
+			spawn_bricks(10)
 
 	except rospy.ROSInterruptException:
 		pass

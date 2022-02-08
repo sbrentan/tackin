@@ -2,7 +2,7 @@
 
 import signal
 import json
-import rospy
+import rospy, tf
 import math
 import time
 from enum import Enum
@@ -38,6 +38,12 @@ import spawner    as spa
 BRICK_HEIGHT_1 = 0.0565
 BRICK_HEIGHT_2 = 0.0855
 
+BRICK_WIDTH_1 = 0.046
+BRICK_WIDTH_2 = 0.095
+
+NO_COLLISION_2 = 0.05615
+NO_COLLISION_1 = 0.02715
+
 SHOULDER_PAN = 0
 SHOULDER_LIFT = 1
 ELBOW = 2
@@ -54,20 +60,36 @@ H1_F3J3 = 11
 BLOCKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
           'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
 
-BLOCKS_HEIGHT = [BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,
-                 BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2]
+#BLOCKS_HEIGHT = [BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,
+#                 BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2,BRICK_HEIGHT_2]
 
+BLOCKS_HEIGHT = [NO_COLLISION_2,NO_COLLISION_1,NO_COLLISION_2,NO_COLLISION_2,NO_COLLISION_2,NO_COLLISION_2,
+                 NO_COLLISION_2,NO_COLLISION_1,NO_COLLISION_2,NO_COLLISION_2,NO_COLLISION_2]
 
 nblocks = np.zeros(11)
+first_bricks = np.zeros(11, dtype=int)
 
 mat = np.matrix
 
+hside = 0
+pre_image = 0
+last_hbrick = 0
 brick_rot = 0
 attached_model = -1
 attached_brick = 0
 posx = 0
 posy = 0
 
+
+#X1-Y1-Z2 di lato
+#X1-Y2-Z2 sotto/lato
+#X1-Y4-Z2 sotto
+
+
+#riconoscimento YOLO fixing
+#problemi movimento braccio
+#per ogni blocco create i template per riconoscimento direzione
+#configuration assignment 4
 
 
 def init():
@@ -119,7 +141,7 @@ def init():
 
     bridge = CvBridge()
 
-    global configuration
+    global configuration, total_bricks
     if(len(sys.argv) > 1):
         filename = sys.argv[1]
     else:
@@ -127,6 +149,20 @@ def init():
     f = open(filename)
     configuration = json.load(f)
     f.close()
+
+    # # Link them
+    # rospy.loginfo("Attaching ground_plane and world")
+    # req = AttachRequest()
+    # req.model_name_1 = "ground_plane"
+    # req.link_name_1 = "link"
+    # req.model_name_2 = "grasper"
+    # req.link_name_2 = "world"
+
+    # attach_srv.call(req)
+
+
+    # total_bricks = len(configuration["bricks"])
+    total_bricks = 12
 
 def kill(_signo, _stack_frame):
     sys.exit(0)
@@ -240,6 +276,21 @@ def rotate(joint, angle, wait = True):
         until_in_range({joint : angle})
     return angle
 
+def euler_from_quaternion(x, y, z, w):
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll_x = math.atan2(t0, t1)
+
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = math.asin(t2)
+
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw_z = math.atan2(t3, t4)
+
+    return roll_x, pitch_y, yaw_z # in radians
 
 def get_object_class():
 
@@ -265,6 +316,8 @@ def get_object_class():
         max6 = min(ar[5], max6)
 
     avgs = []
+    avgs2 = []
+    ks = []
     for k, ar in results.items():
         val1 = ar[0]/max1
         val2 = ar[1]/max2
@@ -273,68 +326,71 @@ def get_object_class():
         val5 = max5/ar[4]
         val6 = max6/ar[5]
         avg = (val1 * 0.05) + (val2 * 0.4) + (val3 * 0.05) + (val4 * 0.4) + (val5 * 0.05) + (val6 * 0.05)
+        # avg = (val2 * 0.5) + (val4 * 0.5)
         avgs.append(avg)
         print(k+' -> '+str(avg))
 
-    global attached_model, brick_rot
-    m = np.argmax(avgs)
-    if(m == 4 or m == 8 or m == 14):#180
-        brick_rot = np.pi
-    elif(m == 13):#-90
-        brick_rot = -np.pi/2
-    elif(m == 15):#90
-        brick_rot = np.pi/2
+    # global attached_model, brick_rot
+    # m = np.argmax(avgs)
+    # if(m == 4 or m == 8 or m == 14):#180
+    #     brick_rot = np.pi
+    # elif(m == 13):#-90
+    #     brick_rot = -np.pi/2
+    # elif(m == 15):#90
+    #     brick_rot = np.pi/2
 
-    old_m = m
-    temp = 0
-    if(m > 3): temp-=1
-    if(m > 7): temp-=1
-    if(m > 12): temp-=1
-    if(m > 13): temp-=1
-    if(m > 14): temp-=1
-    m += temp
+    # old_m = m
+    # temp = 0
+    # if(m > 3): temp-=1
+    # if(m > 7): temp-=1
+    # if(m > 12): temp-=1
+    # if(m > 13): temp-=1
+    # if(m > 14): temp-=1
+    # m += temp
 
-    attached_model = m
-    print("Prev att mod: " + str(attached_model))
+    # attached_model = m
+    # print("Prev att mod: " + str(attached_model))
 
-    hbrick = 0.32 - brick_dist
-    if(np.abs(hbrick - BRICK_HEIGHT_1) > np.abs(hbrick - BRICK_HEIGHT_2)):
-        corr_brick = BLOCKS[attached_model].replace("Z1", "Z2")
-    else:
-        corr_brick = BLOCKS[attached_model].replace("Z2", "Z1")
+    # hbrick = 0.32 - brick_dist
+    # if(np.abs(hbrick - BRICK_HEIGHT_1) > np.abs(hbrick - BRICK_HEIGHT_2)):
+    #     corr_brick = BLOCKS[attached_model].replace("Z1", "Z2")
+    # else:
+    #     corr_brick = BLOCKS[attached_model].replace("Z2", "Z1")
         
-    if(corr_brick == "X1-Y2-Z2-CHAMFER"):
-        if(np.abs(avgs[5] - avgs[old_m]) < 0.01):
-            corr_brick = "X1-Y2-Z2-TWINFILLET"
-            print("Corrected from X1-Y2-Z2-CHAMFER to X1-Y2-Z2-TWINFILLET")
+    # if(corr_brick == "X1-Y2-Z2-CHAMFER"):
+    #     if(np.abs(avgs[5] - avgs[old_m]) < 0.01):
+    #         corr_brick = "X1-Y2-Z2-TWINFILLET"
+    #         print("Corrected from X1-Y2-Z2-CHAMFER to X1-Y2-Z2-TWINFILLET")
 
-    elif(corr_brick == "X1-Y2-Z1-CHAMFER"):
-        corr_brick = "X1-Y2-Z1"
+    # elif(corr_brick == "X1-Y2-Z1-CHAMFER"):
+    #     corr_brick = "X1-Y2-Z1"
 
-    print("Corr brick: " + corr_brick)
-    attached_model = BLOCKS.index(corr_brick)
-    print("Corr att mod: " + str(attached_model))
-    print("Max arg: " + str(attached_model) + " " + BLOCKS[attached_model] + " with rot " + str(brick_rot))
+    # print("Corr brick: " + corr_brick)
+    # # attached_model = BLOCKS.index(corr_brick)
+    # print("Corr att mod: " + str(attached_model))
+    # print("Max arg: " + str(attached_model) + " " + BLOCKS[attached_model] + " with rot " + str(brick_rot))
 
-def rotate_brick(r,p,ry, name = ""):
+def rotate_brick(name = ""):
     global set_state_srv, mstate_srv
-
     if(len(name) == 0):
         name = 'brick'+str(attached_brick)
-    ms2 = mstate_srv(name, "wrist_3_link")
-    # print(ms2)
+    ms = mstate_srv(name, "")
+    orient = ms.pose.orientation
+    pos = ms.pose.position
 
-    x,y,z = ms2.pose.position.x, ms2.pose.position.y, ms2.pose.position.z
+    x, _, z = euler_from_quaternion(orient.x, orient.y, orient.z, orient.w)
+    q = tf.transformations.quaternion_from_euler(0, 0, z - x)
+    
     state_msg = ModelState()
     state_msg.model_name = name
-    state_msg.pose.position.x = x
-    state_msg.pose.position.y = y - 0.05
-    state_msg.pose.position.z = z
-    state_msg.pose.orientation.x = 0 + r
-    state_msg.pose.orientation.y = np.pi + p
-    state_msg.pose.orientation.z = -np.pi + ry
-    state_msg.pose.orientation.w = 0
-    state_msg.reference_frame = "wrist_3_link"
+    state_msg.pose.position.x = pos.x
+    state_msg.pose.position.y = pos.y
+    state_msg.pose.position.z = pos.z
+    state_msg.pose.orientation.x = q[0]
+    state_msg.pose.orientation.y = q[1]
+    state_msg.pose.orientation.z = q[2]
+    state_msg.pose.orientation.w = q[3]
+    state_msg.reference_frame = ""
     resp = set_state_srv( state_msg )
 
 def move(joint, position):
@@ -384,7 +440,7 @@ def open_gripper():
         H1_F2J3  : 0,
         H1_F3J2  : -0.4,
         H1_F3J3  : 0,
-    }, 3)
+    }, 2)
 
 
 def close_gripper():
@@ -417,13 +473,28 @@ def attach_joints(nbrick):
     global attached_brick
     attached_brick = nbrick
 
-def detach_joints(name = ""):
+def attach_bricks(model):
 
-    if(len(name) == 0):
-        name = "brick" + str(nbrick)
+    global first_bricks
+
+    # Link them
+    rospy.loginfo("Attaching attached brick and brick" + str(first_bricks[model]))
+    req = AttachRequest()
+    req.model_name_1 = "brick"+str(attached_brick)
+    req.link_name_1 = "link"
+    req.model_name_2 = "brick" + str(first_bricks[model])
+    req.link_name_2 = "link"
+
+    attach_srv.call(req)
+
+def detach_joints(name = ""):
 
     global attached_brick, attached_model, brick_rot
     nbrick = attached_brick
+
+    if(len(name) == 0):
+        name = "brick" + str(nbrick)
+    
     # Link them
     rospy.loginfo("Detaching wrist3 and " + name)
     req = AttachRequest()
@@ -438,8 +509,10 @@ def detach_joints(name = ""):
     brick_rot = 0
 
 def get_model_id():
+    global total_bricks
     names = []
-    for i in range(len(configuration['bricks'])):
+    # for i in range(len(configuration['bricks'])):
+    for i in range(total_bricks):
         names.append("brick"+str(i+1))
 
     curr_pos = (posx, posy, 0)
@@ -464,44 +537,110 @@ def set_joint_states(arr):
     for i in range(len(arr)):
         move(i, arr[i])
 
-def application():
-    compute_kinematik([2, 0, 0.5, -0.3], False, True, 7)
+def detect():
+    global attached_model, brick_dist, last_hbrick, pre_image, hside
 
-    nbricks = len(configuration["bricks"])
-    for i in range(nbricks):
-        compute_kinematik([2, 0, 0.5, -0.2], False, False, 3)
+
+
+    brick_dist = hdist
+
+
+    # image = bridge.imgmsg_to_cv2(last_image)
+
+    image = rec.filterImage(pre_image)
+    image[np.all(image == (0, 0, 0), axis=-1)] = (130,130,130)
+    cv2.imwrite("yoo.jpg", image)
+
+    # model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu", pretrained=True)
+    model = torch.hub.load('src/yolov5', 'custom', path="besterest.pt", source="local", device="cpu")
+    results = model(image, size=500)
+    if(results.pandas().xyxy[0].empty):
+        print("Nothing found")
+    else:
+        print(results.pandas().xyxy)
+        print(BLOCKS[int(results.pandas().xyxy[0].at[0, "class"]/3)])
+        # print(results.pandas().xyxy[0].at[0, "confidence"])
+        attached_model = int(results.pandas().xyxy[0].at[0, "class"]/3)
+
+        print("DIRECTION: " + str(results.pandas().xyxy[0].at[0, "class"]%3))
+
+        # hbrick = 0.32 - brick_dist
+        hbrick = last_hbrick
+        print("HBRICK: " + str(hbrick))
+        if(np.abs(hbrick - BRICK_HEIGHT_1) > np.abs(hbrick - BRICK_HEIGHT_2)):
+            corr_brick = BLOCKS[attached_model].replace("Z1", "Z2")
+        else:
+            corr_brick = BLOCKS[attached_model].replace("Z2", "Z1")
+        attached_model = BLOCKS.index(corr_brick)
+
+        print("HSIDE: " + str(hside))
+        if(np.abs(hside - BRICK_WIDTH_1) > np.abs(hside - BRICK_WIDTH_2)):
+            if(np.abs(hside - BRICK_HEIGHT_2) > np.abs(hside - BRICK_WIDTH_2)):
+                corr_brick = BLOCKS[attached_model].replace("X1", "X2")
+        else:
+            if(np.abs(hside - BRICK_HEIGHT_1) > np.abs(hside - BRICK_WIDTH_1)):
+                corr_brick = BLOCKS[attached_model].replace("X2", "X1")
+        attached_model = BLOCKS.index(corr_brick)
+
+
+def application():
+    compute_kinematik([2, 0, 0.5, -0.1], False, True, 7)
+
+    for i in range(total_bricks):
+        compute_kinematik([2, 0, 0.7, 0], False, True, 2, True)
 
         command("depth")
+
+        # command("turn")
 
         command("low")
 
         command("close " + str(get_model_id()))
 
-        print_time()
+
+        # print_time()
         command("high")
 
-        global attached_model, brick_rot, rec_thread
+        global attached_model, brick_rot, rec_thread, first_bricks
 
-        print_time()
+        # print_time()
         rec_thread.join()
-        print_time()
-        print(brick_rot, attached_model)
+        # print("orso")
+        # print_time()
+        # print(brick_rot, attached_model)
 
 
         x, y = spa.get_xy_ground_pos(attached_model)
         z = -0.38 + (nblocks[attached_model] * BLOCKS_HEIGHT[attached_model])
-        # nblocks[attached_model] += 1
-        command("kin 2 "+str(x)+" "+str(y)+" -0.2")
-        print("ROT1: "+str(joint_states[WRIST3]))
+        nblocks[attached_model] += 1
+        # print("ZZZZZ: "+str(z))
+        command("kin 2 "+str(x)+" "+str(y)+" "+str(z+0.4))
+        # print("ROT1: "+str(joint_states[WRIST3]))
         rotate_wrist(brick_rot, 1, True)
-        print("ROT2: "+str(joint_states[WRIST3]))
+        # print("ROT2: "+str(joint_states[WRIST3]))
 
-
+        # print("ergonomico")
+        command("kan 2 "+str(x)+" "+str(y)+" "+str(z+0.15))
         command("kan 2 "+str(x)+" "+str(y)+" " + str(z))
 
-        command("open")
+        open_gripper()
 
-        command("high")
+        if(first_bricks[attached_model] > 0):
+            attach_bricks(attached_model)
+        else:
+            req = AttachRequest()
+            req.model_name_1 = "brick"+str(attached_brick)
+            req.link_name_1 = "link"
+            req.model_name_2 = "brick_ground" + str(attached_model+1)
+            req.link_name_2 = "link"
+            attach_srv.call(req)
+            first_bricks[attached_model] = int(attached_brick)
+
+        detach_joints()
+        time.sleep(0.5)
+
+
+        command("kan 2 "+str(x)+" "+str(y)+" "+str(z+0.2))
 
         print("Insert command: ", end="")
         cmd = input()
@@ -510,8 +649,12 @@ def application():
 
 
 def command(cmd):
+    global hdist
     if(len(cmd.split()) < 1):
         return
+
+    elif(cmd == "monke"):
+        print();
 
     elif(cmd == "mstate"):
         get_model_id()
@@ -537,25 +680,27 @@ def command(cmd):
 
         command("turn")
 
-    elif(cmd.split()[0] == "turn"):
-        ab = attached_brick
-        if(attached_brick == 0):
-            ab = get_model_id()
-        if(len(cmd.split()) > 1):
-            ab = int(cmd.split()[1])
-        ms = mstate_srv("brick"+str(ab), "")
-        # print(ms)
-        if(len(cmd.split()) < 5):
-            r, p, y = 0, -np.pi, np.pi
-        else:
-            r, p, y = cmd.split()[2:]
-        rotate_brick(float(r), float(p), float(y), "brick"+str(ab))
+    elif(cmd.split()[0] == "bdist"):
+        print(ms)
 
+    elif(cmd.split()[0] == "turn"):
+        ab = get_model_id()
+        print("ab: "+str(ab))
+        if(len(cmd.split()) > 1):
+            rotate_brick(float(cmd.split()[1]))
+        else:
+            rotate_brick("brick"+str(ab))
+
+    elif(cmd == "goc"):
+        get_object_class()
 
     elif(cmd.split()[0] == "open"):
         open_gripper()
         if(len(cmd.split()) > 1):
             detach_joints(cmd.split()[1])
+        else:
+            detach_joints()
+
 
     elif(cmd.split()[0] == "close"):
         if(len(cmd.split()) > 1):
@@ -563,7 +708,7 @@ def command(cmd):
         close_gripper()
         
     elif(cmd[0:3] == "kin"): #resets wrist3
-        compute_kinematik(cmd.split()[1:], False, True, 10)
+        compute_kinematik(cmd.split()[1:], False, True, 10, True)
 
     elif(cmd[0:3] == "kan"): #ignores wrist3
         compute_kinematik(cmd.split()[1:], True, True, 10)
@@ -592,7 +737,7 @@ def command(cmd):
         xdiff = xdiff * 0.143 / 418
         ydiff = ydiff * 0.046 / 134
         print(angle, xdiff, ydiff, pose1)
-        compute_kinematik([mode, posx - xdiff, posy + ydiff, -0.2], True)
+        thetas = compute_kinematik([mode, posx - xdiff, posy + ydiff, -0.2], True)
 
         # time.sleep(2)
         # image = bridge.imgmsg_to_cv2(last_image)
@@ -606,10 +751,27 @@ def command(cmd):
         # print(joint_states[WRIST3])
         rotate_wrist(angle, 1)
 
-        time.sleep(2)
+        # print(thetas[SHOULDER_PAN, 2] + np.pi/2 + angle)
 
-        global rec_thread
-        rec_thread = threading.Thread(target=get_object_class, args=(), kwargs={})
+        print("can " + str(angle))
+
+        global rec_thread, last_hbrick, pre_image, hside
+        
+
+        time.sleep(1)
+        print("can "+str(hdist))
+        time.sleep(1)
+
+        hside = 0.32 - hdist
+        print("DIO ORSO ------ " + str(hside))
+
+        command("turn")
+        time.sleep(0.2)
+        last_hbrick = 0.32 - hdist
+        pre_image = image
+        
+
+        rec_thread = threading.Thread(target=detect, args=(), kwargs={})
         rec_thread.start()
         
 
@@ -669,42 +831,17 @@ def command(cmd):
 
     elif(cmd == "camera"):
         camera_image = bridge.imgmsg_to_cv2(last_image)
-        cv2.imwrite("cool_camera_image.jpg", camera_image)
-
-    elif(cmd.split()[0] == "spawnbox"):
-        x, y, name = cmd.split()[1:]
-        os.system("roslaunch test2_gazebo spawn_box.launch x:="+x+" y:="+y+" name:="+name+" > /dev/null")
-
-    elif(cmd.split()[0] == "spawnbrick"):
-        x, y, name, model = cmd.split()[1:]
-        os.system("roslaunch test2_gazebo spawn_brick.launch x:="+x+" y:="+y+" name:="+name+" model:="+model+" > /dev/null")        
+        cv2.imwrite("cool_camera_image.jpg", camera_image)       
 
     elif(cmd == "detect"):
-        # model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu", pretrained=True)
-        model = torch.hub.load('src/yolov5', 'custom', path="best.pt", source="local", device="cpu")
-        camera_image = bridge.imgmsg_to_cv2(last_image)
-        results = model(camera_image)
-        if(results.pandas().xyxy[0].empty):
-            print("Nothing found")
-        else:
-            print(results.pandas().xyxy)
-            print(BLOCKS[results.pandas().xyxy[0].at[0, "class"]])
-            print(results.pandas().xyxy[0].at[0, "confidence"])
+        detect()
 
     elif(cmd == "test"):
         print(joint_states)
         print(joint_states[1])
 
     elif(cmd.split()[0] == "rotate"):
-
         rotate_wrist(float(cmd.split()[2]), int(cmd.split()[1]))
-        # if(cmd.split()[1] == "0"):
-        #     move(WRIST3, float(cmd.split()[2]))
-        # elif(cmd.split()[1] == "1"):
-        #     move(WRIST3, joint_states[WRIST3] + float(cmd.split()[2]))
-
-    elif(cmd == "temp"):
-        get_object_class()
 
 
     elif(cmd == "reset"):
@@ -720,7 +857,7 @@ def command(cmd):
     elif(cmd == "x"):
         sys.exit()
 
-def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8): #BEST ARGS[0] = 6
+def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8, lift_first = False): #BEST ARGS[0] = 6
     mode = int(args[0])
     x = float(args[1])
     y = float(args[2])
@@ -733,51 +870,74 @@ def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8): #BEST 
     posy = y
 
     # print(args)
+    # thetas = kin.invKine((mat([
+    #     [1, 0, 0, -x],
+    #     [0, -1, 0, -y],
+    #     [0, 0, -1, zposition],
+    #     [0, 0, 0, 1]
+    #          ])))
+
+
     thetas = kin.invKine((mat([
-        [1, 0, 0, -x],
-        [0, -1, 0, -y],
-        [0, 0, -1, zposition],
+        [1, 0, -1, -x],
+        [0, 0, -1, -y],
+        [0, 1, 0, zposition],
         [0, 0, 0, 1]
              ])))
 
-
-    # thetas = kin.invKine((mat([
-    #     [1, 0, -1, -x],
-    #     [0, 0, -1, -y],
-    #     [0, 1, 0, zposition],
-    #     [0, 0, 0, 1]
-    #          ])))
+    if(lift_first):
+        move(SHOULDER_LIFT, thetas[1,mode])
+        move(ELBOW, thetas[2,mode])
+        until_in_range({SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode], ELBOW : thetas[ELBOW, mode]}, 3)
 
     w1rot = rotate(WRIST1, thetas[3,mode], False)
     w2rot = rotate(WRIST2, thetas[4,mode], False)
 
     w3rot = thetas[SHOULDER_PAN,mode] + np.pi/2
+    print("orso " + str(w3rot))
     if(y < 0):
         w3rot -= np.pi
     if(not ignorew3):
         w3rot = rotate_wrist(w3rot, 0, False)
 
+    if(not lift_first):
+        move(SHOULDER_LIFT, thetas[1,mode])
+        move(ELBOW, thetas[2,mode])
+
     pan_rot = rotate(SHOULDER_PAN, thetas[0,mode], False)
-    move(SHOULDER_LIFT, thetas[1,mode])
-    move(ELBOW, thetas[2,mode])
 
     if(wait and ignorew3):
-        until_in_range({
-            SHOULDER_PAN  : pan_rot,
-            SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
-            ELBOW         : thetas[ELBOW, mode],
-            WRIST1        : w1rot,
-            WRIST2        : w2rot,
-        }, max_wait)
+        if(lift_first):
+            until_in_range({
+                SHOULDER_PAN  : pan_rot,
+                WRIST1        : w1rot,
+                WRIST2        : w2rot,
+            }, max_wait)
+        else:
+            until_in_range({
+                SHOULDER_PAN  : pan_rot,
+                SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
+                ELBOW         : thetas[ELBOW, mode],
+                WRIST1        : w1rot,
+                WRIST2        : w2rot,
+            }, max_wait)
     elif(wait):
-        until_in_range({
-            SHOULDER_PAN  : pan_rot,
-            SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
-            ELBOW         : thetas[ELBOW, mode],
-            WRIST1        : w1rot,
-            WRIST2        : w2rot,
-            WRIST3        : w3rot,
-        }, max_wait)
+        if(lift_first):
+            until_in_range({
+                SHOULDER_PAN  : pan_rot,
+                WRIST1        : w1rot,
+                WRIST2        : w2rot,
+                WRIST3        : w3rot,
+            }, max_wait)
+        else:
+            until_in_range({
+                SHOULDER_PAN  : pan_rot,
+                SHOULDER_LIFT : thetas[SHOULDER_LIFT, mode],
+                ELBOW         : thetas[ELBOW, mode],
+                WRIST1        : w1rot,
+                WRIST2        : w2rot,
+                WRIST3        : w3rot,
+            }, max_wait)
 
     # print("Resulting theta 6: " + str(thetas[5,mode]) + ", w3rot: " + str(w3rot))
     
@@ -798,7 +958,6 @@ def main():
 if __name__ == '__main__':
     try:
         init()
-
         main()
     except rospy.ROSInterruptException:
         pass

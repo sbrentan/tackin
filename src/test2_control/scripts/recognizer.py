@@ -84,49 +84,86 @@ def getPose(image):
     # return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
     return angle, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
 
-def getClass(image):
-    print("Getting class of image")
-    
+def filterImage(image):
     lower = np.array([140, 140, 140])
     upper = np.array([170 ,170 ,170])
 
     mask = cv2.inRange(image, lower, upper) # modify your thresholds
     inv_mask = cv2.bitwise_not(mask)
-    image = cv2.bitwise_and(image, image, mask=inv_mask)
+        
+    ret, thresh = cv2.threshold(inv_mask,0,255,0)
 
+    # thresh = cv2.cvtColor(thresh, cv2.COLOR_RGB2GRAY)
+    contours,h = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+
+    contours= sorted(contours, key=cv2.contourArea, reverse= True)
+    cnt= contours[0]
+
+    mask2 = np.zeros(image.shape, np.uint8)
+    mask2 = cv2.cvtColor(mask2, cv2.COLOR_RGB2GRAY)
+    cv2.fillPoly(mask2, pts =[cnt], color=(255))
+
+    # inv_mask = cv2.bitwise_not(mask)
+    image = cv2.bitwise_and(image, image, mask=mask2)
+
+    
+    return image
+
+def getClass(image):
+    print("Getting class of image")
+    
+    # lower = np.array([140, 140, 140])
+    # upper = np.array([170 ,170 ,170])
+
+    # mask = cv2.inRange(image, lower, upper) # modify your thresholds
+    # inv_mask = cv2.bitwise_not(mask)
+    # image = cv2.bitwise_and(image, image, mask=inv_mask)
+
+    # image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+    # # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # # threshold the grayscale image
+    # ret, thresh = cv2.threshold(image,0,255,0)
+
+    # # find outer contour
+    # cntrs = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # cntrs = cntrs[0] if len(cntrs) == 2 else cntrs[1]
+
+
+
+    # # get rotated rectangle from outer contour
+    # rotrect = cv2.minAreaRect(max(cntrs, key = cv2.contourArea))
+    # box = cv2.boxPoints(rotrect)
+    # box = np.int0(box)
+
+    # xMin = min(box[::-1, 0])
+    # xMax = max(box[::-1, 0])
+    # yMin = min(box[::-1, 1])
+    # yMax = max(box[::-1, 1])
+    # # box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
+
+    # # print(image[yMin:yMax, xMin:xMax])
+
+    # m = stats.mode(image[yMin:yMax, xMin:xMax])[0][0]
+    # m = stats.mode(m)[0][0]
+    # # print(m)
+    # m = 200 - m
+
+
+
+    # a = image[yMin:yMax, xMin:xMax]
+    # image[yMin:yMax, xMin:xMax] = np.where(a == 0, a, a + m)
+
+
+    image = filterImage(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
-    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    m = stats.mode(image[np.where(image != 0)])[0][0]
+    mx = np.max(image)
+    m = mx - m
+    image = np.where(image == 0, 0, image+m)
 
-    # threshold the grayscale image
-    ret, thresh = cv2.threshold(image,0,255,0)
-
-    # find outer contour
-    cntrs = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cntrs = cntrs[0] if len(cntrs) == 2 else cntrs[1]
-
-
-
-    # get rotated rectangle from outer contour
-    rotrect = cv2.minAreaRect(max(cntrs, key = cv2.contourArea))
-    box = cv2.boxPoints(rotrect)
-    box = np.int0(box)
-
-    xMin = min(box[::-1, 0])
-    xMax = max(box[::-1, 0])
-    yMin = min(box[::-1, 1])
-    yMax = max(box[::-1, 1])
-    # box = np.array([[xMin, yMax], [xMax, yMax], [xMax, yMin], [xMin, yMin]])
-
-    # print(image[yMin:yMax, xMin:xMax])
-
-    m = stats.mode(image[yMin:yMax, xMin:xMax])[0][0]
-    m = stats.mode(m)[0][0]
-    print(m)
-    m = 200 - m
-
-    a = image[yMin:yMax, xMin:xMax]
-    image[yMin:yMax, xMin:xMax] = np.where(a == 0, a, a + m)
 
     
     cv2.imwrite("gg.jpg", image)
@@ -140,6 +177,11 @@ def getClass(image):
     templates = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-CHAMFER-2', 'X1-Y2-Z2-TWINFILLET', 
                  'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y3-Z2-FILLET-2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 
                  'X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3']
+
+    orientation = ['up2', 'down2', 'opp2']#, 'ppo2', 'up22', 'down22', 'opp22']
+
+
+    # templates += orientation
 
     results = {}
     for temp in templates:

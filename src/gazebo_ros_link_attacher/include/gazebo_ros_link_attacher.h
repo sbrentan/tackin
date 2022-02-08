@@ -22,11 +22,20 @@
 #include "gazebo_ros_link_attacher/Attach.h"
 #include "gazebo_ros_link_attacher/AttachRequest.h"
 #include "gazebo_ros_link_attacher/AttachResponse.h"
-
-#include <mutex>
+#include <condition_variable>
 
 namespace gazebo
 {
+
+   class GazeboRosLinkAttacher_op
+   {
+   public:
+
+      bool complete;
+      std::function<void()> func;
+      bool res;
+      std::condition_variable cond_var;
+   };
 
    class GazeboRosLinkAttacher : public WorldPlugin
    {
@@ -48,8 +57,6 @@ namespace gazebo
         bool detach(std::string model1, std::string link1,
                     std::string model2, std::string link2);
 
-        void OnUpdate();
-
         /// \brief Internal representation of a fixed joint
         struct fixedJoint{
             std::string model1;
@@ -65,12 +72,12 @@ namespace gazebo
 
         bool getJoint(std::string model1, std::string link1, std::string model2, std::string link2, fixedJoint &joint);
 
+        void onUpdate();
+
    private:
         ros::NodeHandle nh_;
         ros::ServiceServer attach_service_;
         ros::ServiceServer detach_service_;
-
-        gazebo::event::ConnectionPtr beforePhysicsUpdateConnection;
 
         bool attach_callback(gazebo_ros_link_attacher::Attach::Request &req,
                               gazebo_ros_link_attacher::Attach::Response &res);
@@ -79,15 +86,18 @@ namespace gazebo
 
         std::vector<fixedJoint> joints;
 
-        std::vector<fixedJoint> detach_vector;
-
-        std::mutex muuutex;
-
         /// \brief The physics engine.
         physics::PhysicsEnginePtr physics;
 
         /// \brief Pointer to the world.
         physics::WorldPtr world;
+
+        std::mutex cb_mutex;
+        std::queue<std::shared_ptr<GazeboRosLinkAttacher_op> > ops;
+
+        private: event::ConnectionPtr updateConnection;
+
+        
 
    };
 

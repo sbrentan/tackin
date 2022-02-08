@@ -1,14 +1,10 @@
 #include <gazebo/common/Plugin.hh>
 #include <ros/ros.h>
-#include <gazebo/common/common.hh>
-#include <gazebo/common/Events.hh>
 #include "gazebo_ros_link_attacher.h"
 #include "gazebo_ros_link_attacher/Attach.h"
 #include "gazebo_ros_link_attacher/AttachRequest.h"
 #include "gazebo_ros_link_attacher/AttachResponse.h"
 #include <ignition/math/Pose3.hh>
-
-#include <unistd.h>
 
 namespace gazebo
 {
@@ -45,56 +41,28 @@ namespace gazebo
     ROS_INFO_STREAM("Detach service at: " << this->nh_.resolveName("detach"));
     ROS_INFO("Link attacher node initialized.");
 
-    std::vector<fixedJoint> vect;
-    this->detach_vector = vect;
-    this->beforePhysicsUpdateConnection = gazebo::event::Events::ConnectBeforePhysicsUpdate(std::bind(&GazeboRosLinkAttacher::OnUpdate, this));
-
+    this->updateConnection = event::Events::ConnectWorldUpdateBegin(
+          std::bind(&GazeboRosLinkAttacher::onUpdate, this));
   }
-
-
-  void GazeboRosLinkAttacher::OnUpdate()
-  {
-    this->muuutex.lock();
-    if(!this->detach_vector.empty())
-    {
-      ROS_INFO_STREAM("Received before physics update callback... Detaching joints");
-      std::vector<fixedJoint>::iterator it;
-      it = this->detach_vector.begin();
-      fixedJoint j;
-      while (it != this->detach_vector.end())
-      {
-        j = *it;
-        j.joint->Detach();
-
-        /*for (auto it2 = joints.begin(); it2 != joints.end(); ++it2) {
-          if ((it2->model1.compare(it.model1) == 0) && (it2->model2.compare(it.model2) == 0) &&
-              (it2->link1.compare(it.link1) == 0) && (it2->link2.compare(it.link2) == 0)) {
-
-            joints.erase(it2)
-          }
-        }
-
-        //joints.erase(it);*/
-
-        //joints.clear();
-
-
-        ROS_INFO_STREAM("Joint detached !");
-        ++it;
-      }
-      detach_vector.clear();
-    }
-    this->muuutex.unlock();
-  }
-
 
   bool GazeboRosLinkAttacher::attach(std::string model1, std::string link1,
                                      std::string model2, std::string link2)
   {
 
-    // always create new joint and do not use older ones as it leads to 
-    // weird behaviour in Gazebo
+    // look for any previous instance of the joint first.
+    // if we try to create a joint in between two links
+    // more than once (even deleting any reference to the first one)
+    // gazebo hangs/crashes
     fixedJoint j;
+    if(this->getJoint(model1, link1, model2, link2, j)){
+        ROS_INFO_STREAM("Joint already existed, reusing it.");
+        j.joint->Attach(j.l1, j.l2);
+        j.joint->Load(j.l1, j.l2, ignition::math::Pose3d());
+        return true;
+    }
+    else{
+        ROS_INFO_STREAM("Creating new joint.");
+    }
     j.model1 = model1;
     j.link1 = link1;
     j.model2 = model2;
@@ -184,53 +152,68 @@ namespace gazebo
   bool GazeboRosLinkAttacher::detach(std::string model1, std::string link1,
                                      std::string model2, std::string link2)
   {
-    this->muuutex.lock();
-    // search for the instance of joint and do detach
-    for (auto it = joints.begin(); it != joints.end(); ++it) {
-      if ((it->model1.compare(model1) == 0) && (it->model2.compare(model2) == 0) &&
-          (it->link1.compare(link1) == 0) && (it->link2.compare(link2) == 0)) {
-
-        fixedJoint fj;
-        fj.model1 = it->model1;
-        fj.m1 = it->m1;
-        fj.link1 = it->link1;
-        fj.l1 = it->l1;
-        fj.model2 = it->model2;
-        fj.m2 = it->m2;
-        fj.link2 = it->link2;
-        fj.l2 = it->l2;
-        fj.joint = it->joint;
-
-        this->detach_vector.push_back(fj);
-        ROS_INFO_STREAM("Detach joint request pushed in the detach vector");
-
-        /*sleep(1);
-        joints.erase(it);*/
-
-        /*it->joint->Detach();
-        joints.erase(it);*/
-        this->muuutex.unlock();
-        return true;
+      // search for the instance of joint and do detach
+      fixedJoint j;
+      if(this->getJoint(model1, link1, model2, link2, j)){
+          j.joint->Detach();
+          return true;
       }
-    }
-    this->muuutex.unlock();
+
     return false;
+  }
+
+  bool GazeboRosLinkAttacher::getJoint(std::string model1, std::string link1,
+                                       std::string model2, std::string link2,
+                                       fixedJoint &joint){
+    fixedJoint j;
+    for(std::vector<fixedJoint>::iterator it = this->joints.begin(); it != this->joints.end(); ++it){
+        j = *it;
+        if ((j.model1.compare(model1) == 0) && (j.model2.compare(model2) == 0)
+                && (j.link1.compare(link1) == 0) && (j.link2.compare(link2) == 0)){
+            joint = j;
+            return true;
+        }
+    }
+    return false;
+
   }
 
   bool GazeboRosLinkAttacher::attach_callback(gazebo_ros_link_attacher::Attach::Request &req,
                                               gazebo_ros_link_attacher::Attach::Response &res)
   {
+    std::unique_lock<std::mutex> lock(cb_mutex);
+
     ROS_INFO_STREAM("Received request to attach model: '" << req.model_name_1
                     << "' using link: '" << req.link_name_1 << "' with model: '"
                     << req.model_name_2 << "' using link: '" <<  req.link_name_2 << "'");
-    if (! this->attach(req.model_name_1, req.link_name_1,
-                       req.model_name_2, req.link_name_2)){
-      ROS_ERROR_STREAM("Could not make the attach.");
-      res.ok = false;
+
+    auto op = std::make_shared<GazeboRosLinkAttacher_op>();
+    op->complete=false;
+    op->res=false;
+    auto op_ptr = op.get();
+    op->func=[this,op_ptr,req]()
+    {
+      op_ptr->res = this->attach(req.model_name_1, req.link_name_1,
+                       req.model_name_2, req.link_name_2);
+    };
+
+    ops.push(op);
+
+    if(op->cond_var.wait_for(lock,std::chrono::milliseconds(5000)) == std::cv_status::timeout)
+    {
+      ROS_ERROR_STREAM("Could not make the attach due to timeout.");
+      res.ok = false;      
     }
-    else{
-      ROS_INFO_STREAM("Attach was succesful");
-      res.ok = true;
+    else
+    {    
+      if (! op->res){
+        ROS_ERROR_STREAM("Could not make the attach.");
+        res.ok = false;
+      }
+      else{
+        ROS_INFO_STREAM("Attach was succesful");
+        res.ok = true;
+      }
     }
     return true;
 
@@ -238,19 +221,56 @@ namespace gazebo
 
   bool GazeboRosLinkAttacher::detach_callback(gazebo_ros_link_attacher::Attach::Request &req,
                                               gazebo_ros_link_attacher::Attach::Response &res){
+      
+      std::unique_lock<std::mutex> lock(cb_mutex);
+
       ROS_INFO_STREAM("Received request to detach model: '" << req.model_name_1
                       << "' using link: '" << req.link_name_1 << "' with model: '"
                       << req.model_name_2 << "' using link: '" <<  req.link_name_2 << "'");
-      if (! this->detach(req.model_name_1, req.link_name_1,
-                         req.model_name_2, req.link_name_2)){
-        ROS_ERROR_STREAM("Could not make the detach.");
-        res.ok = false;
+
+      auto op = std::make_shared<GazeboRosLinkAttacher_op>();
+      op->complete=false;
+      op->res=false;
+      auto op_ptr = op.get();
+      op->func=[this,op_ptr,req]()
+      {
+        op_ptr->res = this->detach(req.model_name_1, req.link_name_1,
+                        req.model_name_2, req.link_name_2);
+      };
+
+      ops.push(op);
+
+      if(op->cond_var.wait_for(lock,std::chrono::milliseconds(5000)) == std::cv_status::timeout)
+      {
+        ROS_ERROR_STREAM("Could not make the attach due to timeout.");
+        res.ok = false;      
       }
-      else{
-        ROS_INFO_STREAM("Detach was succesful");
-        res.ok = true;
+      else
+      {
+        if (! op->res){
+          ROS_ERROR_STREAM("Could not make the detach.");
+          res.ok = false;
+        }
+        else{
+          ROS_INFO_STREAM("Detach was succesful");
+          res.ok = true;
+        }
       }
       return true;
+  }
+
+  void GazeboRosLinkAttacher::onUpdate()
+  {
+    std::unique_lock<std::mutex> lock(cb_mutex);
+
+    while (!ops.empty())
+    {
+      auto f = ops.front();
+      ops.pop();
+      f->func();
+      f->complete = true;      
+      f->cond_var.notify_all();      
+    }
   }
 
 }
