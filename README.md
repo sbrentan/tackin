@@ -12,7 +12,7 @@ pip install -r requirements.txt  # install
 Before starting make sure to run "catkin build" and "devel/setup.bash" in your environment
 ```bash
 
-#launch to start a Gazebo simulation with an empty world with the grasper and sets up controllers for the joints
+#launch to start a Gazebo simulation with an empty world with the grasper and set up controllers for the joints
 roslaunch tackin_gazebo grasper.launch 
 
 #starting the interactive console for the start of the assignments
