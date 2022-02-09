@@ -1,0 +1,5 @@
+tackin_control
+/home/simone/tackin/devel/.private/tackin_control/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/tackin_control/lib/pkgconfig/tackin_control.pc /home/simone/tackin/devel/lib/pkgconfig/tackin_control.pc
+/home/simone/tackin/devel/.private/tackin_control/share/tackin_control/cmake/tackin_controlConfig-version.cmake /home/simone/tackin/devel/share/tackin_control/cmake/tackin_controlConfig-version.cmake
+/home/simone/tackin/devel/.private/tackin_control/share/tackin_control/cmake/tackin_controlConfig.cmake /home/simone/tackin/devel/share/tackin_control/cmake/tackin_controlConfig.cmake

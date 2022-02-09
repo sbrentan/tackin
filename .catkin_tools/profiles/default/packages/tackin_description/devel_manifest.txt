@@ -1,0 +1,5 @@
+tackin_description
+/home/simone/tackin/devel/.private/tackin_description/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/tackin_description/lib/pkgconfig/tackin_description.pc /home/simone/tackin/devel/lib/pkgconfig/tackin_description.pc
+/home/simone/tackin/devel/.private/tackin_description/share/tackin_description/cmake/tackin_descriptionConfig-version.cmake /home/simone/tackin/devel/share/tackin_description/cmake/tackin_descriptionConfig-version.cmake
+/home/simone/tackin/devel/.private/tackin_description/share/tackin_description/cmake/tackin_descriptionConfig.cmake /home/simone/tackin/devel/share/tackin_description/cmake/tackin_descriptionConfig.cmake

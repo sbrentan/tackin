@@ -1,0 +1,5 @@
+tackin_gazebo
+/home/simone/tackin/devel/.private/tackin_gazebo/cmake.lock /home/simone/tackin/devel/./cmake.lock
+/home/simone/tackin/devel/.private/tackin_gazebo/lib/pkgconfig/tackin_gazebo.pc /home/simone/tackin/devel/lib/pkgconfig/tackin_gazebo.pc
+/home/simone/tackin/devel/.private/tackin_gazebo/share/tackin_gazebo/cmake/tackin_gazeboConfig-version.cmake /home/simone/tackin/devel/share/tackin_gazebo/cmake/tackin_gazeboConfig-version.cmake
+/home/simone/tackin/devel/.private/tackin_gazebo/share/tackin_gazebo/cmake/tackin_gazeboConfig.cmake /home/simone/tackin/devel/share/tackin_gazebo/cmake/tackin_gazeboConfig.cmake
