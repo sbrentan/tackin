@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy, rospkg
 from gazebo_ros_link_attacher.srv import Attach, AttachRequest
@@ -466,7 +466,13 @@ def detect(dataset = "dataset.pt", is_correction = False):
                 corr_brick = BLOCKS[attached_model].replace("Z1", "Z2")
             else:
                 corr_brick = BLOCKS[attached_model].replace("Z2", "Z1")
-            attached_model = BLOCKS.index(corr_brick)
+
+            if(corr_brick not in BLOCKS):
+                print("Wrong detection, reattempting...")
+                detect("best.pt", is_correction)
+                return
+            else:
+                attached_model = BLOCKS.index(corr_brick)
 
         if(model_side == 1):
             if(np.abs(hside - BRICK_WIDTH_1) > np.abs(hside - BRICK_WIDTH_2)):
@@ -475,7 +481,13 @@ def detect(dataset = "dataset.pt", is_correction = False):
             else:
                 if(np.abs(hside - BRICK_HEIGHT_1) > np.abs(hside - BRICK_WIDTH_1)):
                     corr_brick = BLOCKS[attached_model].replace("X2", "X1")
-            attached_model = BLOCKS.index(corr_brick)
+
+            if(corr_brick not in BLOCKS):
+                print("Wrong detection, reattempting...")
+                detect("best.pt", is_correction)
+                return
+            else:
+                attached_model = BLOCKS.index(corr_brick)
 
         directions = ["UP", "DOWN", "SIDE"]
 
@@ -562,7 +574,6 @@ def adjust():
 
 
     if(redetect):
-        print("Waiting for image... ")
         time.sleep(1)
 
         image = bridge.imgmsg_to_cv2(last_image)

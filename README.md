@@ -7,6 +7,7 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install all the
 git clone https://github.com/sbrentan/tackin  # clone
 cd tackin
 pip install -r requirements.txt  # install
+export GAZEBO_MODEL_PATH=$HOME/.gazebo/models:$HOME/tackin/src:$HOME/tackin/src/tackin_gazebo/models:$HOME/tackin/src/tackin_gazebo/models/bricks:$HOME/tackin/src/tackin_gazebo/models/brick_grounds:$GAZEBO_MODEL_PATH
 ```
 ## Usage
 Before starting make sure to run "catkin build" and "devel/setup.bash" in your environment
