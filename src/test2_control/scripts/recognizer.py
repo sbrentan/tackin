@@ -31,7 +31,8 @@ def getPose(image):
     cntrs = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cntrs = cntrs[0] if len(cntrs) == 2 else cntrs[1]
 
-
+    contours= sorted(cntrs, key=cv2.contourArea, reverse= True)
+    cnt= contours[0]
 
     # get rotated rectangle from outer contour
     rotrect = cv2.minAreaRect(max(cntrs, key = cv2.contourArea))
@@ -73,16 +74,26 @@ def getPose(image):
     elif(xMax - xMin < yMax - yMin and angle < 45):
         angle += 90
 
-
+    M = cv2.moments(cnt)
+    cX = int(M["m10"] / M["m00"])
+    cY = int(M["m01"] / M["m00"])
 
     xcenter = xMin + np.round((xMax - xMin)/2)
     ycenter = yMin + np.round((yMax - yMin)/2)
+
+    # cv2.drawContours(image, cnt, -1, (0, 255, 0), 2)
+    # cv2.circle(image, (cX, cY), 7, (0, 0, 255), -1)
+
+    # cv2.imshow("final", image)
+
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     # print(xcenter, ycenter, end=" asdf ")
     # print(xMax, xMin, yMax, yMin)
 
     # return np.abs(angle), [(xMax - xMin) - ww, (yMax - yMin) - hh]
-    return angle, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter]
+    return angle, [np.round(ww/2) - xcenter, np.round(hh/2) - ycenter], [xMin, xMax, yMin, yMax], [cX, cY]
 
 def filterImage(image):
     lower = np.array([140, 140, 140])

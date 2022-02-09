@@ -17,9 +17,9 @@
       <pose>0 0 0</pose>
     </include>
 
-    <!--include>
-      <uri>model://X1-Y2-Z1</uri>
-      <pose>0.3 0.3 0</pose>
-    </include-->
+    <include>
+      <uri>model://stand</uri>
+      <pose>0 -0.7 0</pose>
+    </include>
   </world>
 </sdf>

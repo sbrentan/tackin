@@ -76,8 +76,9 @@ def spawn_bricks(nbricks, names = []):
 		else:
 			brick = names[i]
 
+		# YANGLES = []
 		YANGLES = [np.pi/2, 0]
-		if(not("FILLET" in brick or "CHAMFER" in brick)):
+		if(not("FILLET" in brick or "CHAMFER" in brick or brick == "X1-Y1-Z2")):
 			YANGLES.append(np.pi)
 
 		with open("/home/simone/tackin/src/test2_gazebo/models/bricks/"+brick+"/model.sdf", "r") as f: brick_xml = f.read()
@@ -114,12 +115,15 @@ def spawn_bricks(nbricks, names = []):
 		# rospy.sleep(0.5)
 
 def get_xy_ground_pos(index):
-	groundx = np.floor(index / 3) - 2
+	groundx = np.floor(index / 3) - 3
 	groundy = (index % 3) - 3
-	if(groundx >= 0):
-		groundx += 1
 
-	return (groundx * 0.4) + 0.05, (groundy * 0.3) + 0.05
+	if(groundx >= -1):
+		groundx = ((groundx+3) * 0.3)-0.07
+	else:
+		groundx = (groundx * 0.3)+0.05
+
+	return groundx, (groundy * 0.3) + 0.05
 
 def spawn_grounds():
 

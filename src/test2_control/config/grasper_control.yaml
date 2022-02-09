@@ -82,28 +82,3 @@ H1_F3J3_joint_position_controller:
   type: position_controllers/JointPositionController
   joint: H1_F3J3
   pid: {p: 10.0, i: 1.0, d: 1.0, i_clamp: 1.0 }
-
-
-# hand_controller:
-#   gains:
-#     H1_F1J1:
-#       p: 10.0
-#     H1_F1J2:
-#       p: 10.0
-#     H1_F1J3:
-#       p: 10.0
-#     H1_F2J1:
-#       p: 10.0
-#     H1_F2J2:
-#       p: 10.0
-#     H1_F2J3:
-#       p: 10.0
-#     H1_F3J1:
-#       p: 10.0
-#     H1_F3J2:
-#       p: 10.0
-#     H1_F3J3:
-#       p: 10.0
-#   type: position_controllers/JointPositionController
-#   joints: [H1_F1J1, H1_F1J2, H1_F1J3, H1_F2J1, H1_F2J2, H1_F2J3, H1_F3J1, H1_F3J2, H1_F3J3]
-#   allow_partial_joints_goal: true
