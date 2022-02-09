@@ -29,5 +29,7 @@ where ```[param]``` is the assignment you want to execute as :
 
 where ```[object_number]``` is the number of object that will spawn (≤15)
 
+We suggest to restart the Gazebo process after every run, as it often causes simulation errors with the meshes of the spawned objects.
+
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
