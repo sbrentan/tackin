@@ -6,28 +6,14 @@ import numpy as np
 import json
 import sys
 import rospy, tf
-from gazebo_msgs.srv import DeleteModel, SpawnModel, SpawnModelRequest, SpawnModelResponse, GetModelState 
+from gazebo_msgs.srv import SpawnModelRequest, SpawnModelResponse, GetModelState 
 from geometry_msgs.msg import *
 
 BRICKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
           'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
 
 
-def init():
-
-	global spawn_model, delete_model, model_srv
-
-	rospy.init_node('supreme_spawner')
-	rospy.wait_for_service("gazebo/spawn_sdf_model")
-	spawn_model = rospy.ServiceProxy("gazebo/spawn_sdf_model", SpawnModel)
-
-	rospy.wait_for_service("gazebo/delete_model")
-	delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-
-	rospy.wait_for_service('/gazebo/get_model_state')
-	model_srv = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-
-def spawn_bricks(nbricks, names = []):
+def spawn_bricks(nbricks, names = [], random_positions = True):
 	count = 1
 	exists = True
 	while(exists):
@@ -44,7 +30,7 @@ def spawn_bricks(nbricks, names = []):
 
 		count+=1
 
-
+	time.sleep(1)
 
 
 	positions = []
@@ -76,10 +62,11 @@ def spawn_bricks(nbricks, names = []):
 		else:
 			brick = names[i]
 
-		# YANGLES = []
-		YANGLES = [np.pi/2, 0]
-		if(not("FILLET" in brick or "CHAMFER" in brick or brick == "X1-Y1-Z2")):
-			YANGLES.append(np.pi)
+		YANGLES = [0]
+		if(random_positions):
+			YANGLES.append(np.pi/2)
+			if(not("FILLET" in brick or "CHAMFER" in brick or brick == "X1-Y1-Z2")):
+				YANGLES.append(np.pi)
 
 		with open("/home/simone/tackin/src/test2_gazebo/models/bricks/"+brick+"/model.sdf", "r") as f: brick_xml = f.read()
 
@@ -156,27 +143,26 @@ def get_models(args):
 	return nbricks, names
 
 
-if __name__ == '__main__':
-	try:
-		fixedpos = []
-		init()
-		spawn_grounds()
-		if(len(sys.argv) > 1):
+def spawn(args, spawn_m, delete_m, model_s):
 
-			if(sys.argv[1] == "n"):
-				spawn_bricks(int(sys.argv[2]))
+	global spawn_model, delete_model, model_srv, fixedpos
+	spawn_model = spawn_m
+	delete_model = delete_m
+	model_srv = model_s
 
-			elif(sys.argv[1] == "one" and len(sys.argv) > 3):
-				fixedpos = [float(sys.argv[2]), float(sys.argv[3])]
-				spawn_bricks(1)
+	fixedpos = []
+	spawn_grounds()
+	if(len(args) > 1):
+		if(args[1] == "a1"):
+			spawn_bricks(1, [], False)
+
+		elif(args[1] == "a2"):
+			spawn_bricks(len(BRICKS), BRICKS, False)
+
+		elif(args[1] == "a3"):
+			num = 11
+			if(len(args) > 2):
+				num = int(args[2])
+			spawn_bricks(num, [], True)
 
 
-			elif(sys.argv[1] == "file"):
-				nbricks, names = get_models(sys.argv)
-				spawn_bricks(nbricks, names)
-
-		else:
-			spawn_bricks(10)
-
-	except rospy.ROSInterruptException:
-		pass

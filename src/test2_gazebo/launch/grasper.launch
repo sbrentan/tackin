@@ -10,4 +10,6 @@
 
   <include file="$(find test2_gazebo)/launch/spawn_grasper.launch"/>
 
+  <include file="$(find test2_control)/launch/grasper_control.launch"/>
+
 </launch>
