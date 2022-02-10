@@ -1,0 +1,9 @@
+# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
+path: /content/drive/MyDriveDataset # dataset root dir
+train: images/train # train images (relative to 'path') 128 images
+val: images/val # val images (relative to 'path') 128 images
+test: # test images (optional)
+
+# Classes 
+nc: 33 # number of classes 
+names: ['X1-Y1-Z2U','X1-Y1-Z2D','X1-Y1-Z2S','X1-Y2-Z1U','X1-Y2-Z1D', 'X1-Y2-Z1S', 'X1-Y2-Z2U', 'X1-Y2-Z2D','X1-Y2-Z2S', 'X1-Y2-Z2-CHAMFERU','X1-Y2-Z2-CHAMFERD','X1-Y2-Z2-CHAMFERS', 'X1-Y2-Z2-TWINFILLETU', 'X1-Y2-Z2-TWINFILLETD', 'X1-Y2-Z2-TWINFILLETS', 'X1-Y3-Z2U', 'X1-Y3-Z2D', 'X1-Y3-Z2S', 'X1-Y3-Z2-FILLETU', 'X1-Y3-Z2-FILLETD', 'X1-Y3-Z2-FILLETS', 'X1-Y4-Z1U', 'X1-Y4-Z1D', 'X1-Y4-Z1S', 'X1-Y4-Z2U','X1-Y4-Z2D','X1-Y4-Z2S', 'X2-Y2-Z2U', 'X2-Y2-Z2D', 'X2-Y2-Z2S', 'X2-Y2-Z2-FILLETU', 'X2-Y2-Z2-FILLETD', 'X2-Y2-Z2-FILLETS'] # class names
