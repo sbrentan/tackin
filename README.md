@@ -13,7 +13,7 @@ export GAZEBO_MODEL_PATH=$HOME/.gazebo/models:$HOME/tackin/src:$HOME/tackin/src/
 Before starting make sure to run "catkin build" and "devel/setup.bash" in your environment
 ```bash
 
-#launch to start a Gazebo simulation with an empty world with the grasper and set up controllers for the joints
+#launch to start a Gazebo simulation with an empty world and the grasper and set up controllers for the joints
 roslaunch tackin_gazebo grasper.launch 
 
 #starting the interactive console for the start of the assignments
@@ -30,7 +30,7 @@ where ```[param]``` is the assignment you want to execute as :
 
 4. ```a4```
 
-where ```[object_number]``` is the number of object that will spawn (≤15)
+where ```[object_number]``` is the number of objects that will spawn (≤15)
 
 We suggest to restart the Gazebo process after every run, as it often causes simulation errors with the meshes of the spawned objects.
 
