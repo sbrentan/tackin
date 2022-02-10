@@ -3,6 +3,11 @@ import numpy as np
 from scipy import stats
 import sys
 
+
+BRICKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
+          'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
+
+
 def getPose(image):
     pre_img = image
 
@@ -88,8 +93,8 @@ def filterImage(image):
     return image
 
 
-def getClass(image):
-    print("Getting class of image")
+def getClass(image, model):
+    # print("Getting class of image")
     
     image = filterImage(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -102,17 +107,25 @@ def getClass(image):
 
     methods = ['cv2.TM_CCOEFF', 'cv2.TM_CCOEFF_NORMED', 'cv2.TM_CCORR', 'cv2.TM_CCORR_NORMED', 'cv2.TM_SQDIFF', 'cv2.TM_SQDIFF_NORMED']
 
-    templates = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-CHAMFER-2', 'X1-Y2-Z2-TWINFILLET', 
-                 'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y3-Z2-FILLET-2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 
-                 'X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3']
+    # templates = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-CHAMFER-2', 'X1-Y2-Z2-TWINFILLET', 
+    #              'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y3-Z2-FILLET-2', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 
+    #              'X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3']
 
-    orientation = ['up2', 'down2', 'opp2']
+    templates = []
+    if("X1-Y2-Z2-CHAMFER" == BRICKS[model]):
+        templates += ['X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-CHAMFER-2']
+    if("X1-Y3-Z2-FILLET" == BRICKS[model]):
+        templates += ['X1-Y3-Z2-FILLET', 'X1-Y3-Z2-FILLET-2']
+    if("X2-Y2-Z2-FILLET" == BRICKS[model]):
+        templates += ['X2-Y2-Z2-FILLET', 'X2-Y2-Z2-FILLET-1', 'X2-Y2-Z2-FILLET-2', 'X2-Y2-Z2-FILLET-3']
+
+    # orientation = ['up2', 'down2', 'opp2']
 
     results = {}
     for temp in templates:
 
 
-        template = cv2.imread('/home/simone/tackin/src/test2_control/scripts/templates2/'+temp+'.jpg', 0)
+        template = cv2.imread('/home/simone/tackin/src/tackin_control/scripts/templates2/'+temp+'.jpg', 0)
 
         results2 = []
 
@@ -130,4 +143,4 @@ def getClass(image):
 
         results[temp] = results2
 
-    return results
+    return results, templates

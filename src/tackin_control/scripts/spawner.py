@@ -13,6 +13,8 @@ from geometry_msgs.msg import *
 BRICKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
           'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
 
+# BRICKS = ['X1-Y2-Z2-CHAMFER', 'X1-Y3-Z2-FILLET', 'X2-Y2-Z2-FILLET']
+
 rp = rospkg.RosPack()
 pkg_path_gazebo = rp.get_path("tackin_gazebo")
 pkg_path_control = rp.get_path("tackin_control")
@@ -64,11 +66,13 @@ def spawn_bricks(nbricks, names = [], random_positions = True):
 		else:
 			brick = names[i]
 
+
 		YANGLES = [0]
 		if(random_positions):
 			YANGLES.append(np.pi/2)
 			if(not("FILLET" in brick or "CHAMFER" in brick or brick == "X1-Y1-Z2")):
 				YANGLES.append(np.pi)
+
 
 		with open(pkg_path_gazebo + "/models/bricks/"+brick+"/model.sdf", "r") as f: brick_xml = f.read()
 
@@ -153,8 +157,9 @@ def spawn(args, spawn_m, delete_m, model_s):
 	model_srv = model_s
 
 	fixedpos = []
-	spawn_grounds()
 	if(len(args) > 1):
+		if(args[1] != "a4"):
+			spawn_grounds()
 		if(args[1] == "a1"):
 			spawn_bricks(1, [], False)
 
@@ -166,5 +171,10 @@ def spawn(args, spawn_m, delete_m, model_s):
 			if(len(args) > 2):
 				num = int(args[2])
 			spawn_bricks(num, [], True)
+
+		elif(args[1] == "a4"):
+			configuration = args[2]
+			names = list(map(lambda x : x["model"], configuration["bricks"]))
+			spawn_bricks(len(configuration["bricks"]), names, True)
 
 

@@ -1,0 +1,53 @@
+{
+	"bricks": [
+
+
+		{
+			"model": "X2-Y2-Z2",
+			"pos"  : "x y z",
+			"rot"  : "0 0 0"
+		},
+		{
+			"model": "X2-Y2-Z2",
+			"pos"  : "x-w2 y z",
+			"rot"  : "0 0 0"
+		},
+
+
+
+
+        {
+			"model": "X1-Y4-Z2",
+			"pos"  : "x-w1 y-w1/2 z+h2",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X1-Y4-Z2",
+			"pos"  : "x-w1 y+w1/2 z+h2",
+			"rot"  : "0 0 0"
+		},
+
+
+
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x y-w1/2 z+2h2",
+			"rot"  : "0 0 3.14"
+		},
+		{
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x y+w1/2 z+2h2",
+			"rot"  : "0 0 3.14"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x-w2 y-w1/2 z+2h2",
+			"rot"  : "0 0 0"
+		},
+		{
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x-w2 y+w1/2 z+2h2",
+			"rot"  : "0 0 0"
+		}
+	]
+} 

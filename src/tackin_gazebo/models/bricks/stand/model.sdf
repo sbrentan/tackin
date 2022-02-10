@@ -71,7 +71,7 @@
           <contact>
             <collide_without_contact>0</collide_without_contact>
             <collide_without_contact_bitmask>1</collide_without_contact_bitmask>
-            <collide_bitmask>0xffff</collide_bitmask>
+            <collide_bitmask>0xffffffff</collide_bitmask>
             <ode>
               <soft_cfm>0</soft_cfm>
               <soft_erp>0.2</soft_erp>

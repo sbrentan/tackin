@@ -9,6 +9,7 @@ from sensor_msgs.msg import JointState
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import Image
 
+import json
 import numpy as np
 import torch
 import sys
@@ -20,6 +21,7 @@ import threading
 import cv2
 from cv_bridge import CvBridge
 from scipy.spatial import distance
+from scipy import stats
 
 import time
 from datetime import datetime
@@ -66,11 +68,16 @@ KPI_21 = 0
 BLOCKS = ['X1-Y1-Z2', 'X1-Y2-Z1', 'X1-Y2-Z2', 'X1-Y2-Z2-CHAMFER', 'X1-Y2-Z2-TWINFILLET', 
           'X1-Y3-Z2', 'X1-Y3-Z2-FILLET', 'X1-Y4-Z1', 'X1-Y4-Z2', 'X2-Y2-Z2', 'X2-Y2-Z2-FILLET']
 
+BLOCKS_SIDED = ['X1-Y2-Z2-CHAMFER', 'X1-Y3-Z2-FILLET', 'X2-Y2-Z2-FILLET']
+
 BLOCKS_HEIGHT = [NO_COLLISION_2,NO_COLLISION_1,NO_COLLISION_2,NO_COLLISION_2,NO_COLLISION_2,NO_COLLISION_2,
                  NO_COLLISION_2,NO_COLLISION_1,NO_COLLISION_2,NO_COLLISION_2,NO_COLLISION_2]
 
 BLOCKS_WIDTH = [BRICK_WIDTH_1, BRICK_WIDTH_2, BRICK_WIDTH_2, BRICK_WIDTH_2, BRICK_WIDTH_2, BRICK_WIDTH_3, 
                 BRICK_WIDTH_3, BRICK_WIDTH_4, BRICK_WIDTH_4, BRICK_WIDTH_2, BRICK_WIDTH_2 ]
+
+BLOCKS_DEPTH = [BRICK_WIDTH_1, BRICK_WIDTH_1, BRICK_WIDTH_1, BRICK_WIDTH_1, BRICK_WIDTH_1, BRICK_WIDTH_1, 
+                BRICK_WIDTH_1, BRICK_WIDTH_1, BRICK_WIDTH_1, BRICK_WIDTH_2, BRICK_WIDTH_2 ]
 
 nblocks = np.zeros(11)
 first_bricks = np.zeros(11, dtype=int)
@@ -92,11 +99,21 @@ attached_brick = 0
 posx = 0
 posy = 0
 
+brick_add_rot = 0
+
 brick_pixels_height = 0
 brick_pixels_box = [0, 0, 0, 0]
 
 BRICK_PIXEL_HEIGHT_1 = 150
 BRICK_PIXEL_HEIGHT_2 = 200
+
+brick_height_correction = 0
+
+conf_bricks = []
+a4_brick_positions = []
+a4_curr_height = 0
+a4_brick_pos_ind = []
+a4_free_bricks = []
 
 def init():
     signal.signal(signal.SIGINT, kill)
@@ -318,9 +335,9 @@ def close_gripper(ignoref1 = False):
 
     global brick_pixels_height
     joint3 = 0.8
-    joint2 = -0.36
+    joint2 = -0.38
     if(np.abs(brick_pixels_height - BRICK_PIXEL_HEIGHT_2) > np.abs(brick_pixels_height - BRICK_PIXEL_HEIGHT_1)):
-        joint2 = -0.15
+        joint2 = -0.13
 
     if(not ignoref1):
         move(H1_F1J2, joint2)
@@ -433,6 +450,60 @@ def set_joint_states(arr):
     for i in range(len(arr)):
         move(i, arr[i])
 
+
+def get_object_class(pre_img, attached_model):
+
+    global brick_add_rot
+
+    results, templates = rec.getClass(pre_img, attached_model)
+
+
+    max1 = 0
+    max2 = 0
+    max3 = 0
+    max4 = 0
+    max5 = -1
+    max6 = -1
+    for k, ar in results.items():
+        # print(k+" -> "+str(ar))
+        max1 = max(ar[0], max1)
+        max2 = max(ar[1], max2)
+        max3 = max(ar[2], max3)
+        max4 = max(ar[3], max4)
+        if(max5 == -1): max5 = ar[4]
+        else:max5 = min(ar[4], max5)
+
+        if(max6 == -1): max6 = ar[5]
+        else:max6 = min(ar[5], max6)
+
+    avgs = []
+    avgs2 = []
+    ks = []
+    for k, ar in results.items():
+        val1 = ar[0]/max1
+        val2 = ar[1]/max2
+        val3 = ar[2]/max3
+        val4 = ar[3]/max4
+        val5 = ar[4] / max5
+        val6 = ar[5] / max6
+        # avg = (val1 * 0.1) + (val2 * 0.4) + (val3 * 0.1) + (val4 * 0.4)# + (val5 * 1/6) + (val6 * 1/6)
+        avg = (val2 * 0.5) + (val4 * 0.5)
+        avgs.append(avg)
+        # print(k+' -> '+str(float(avg)))
+
+    m = np.argmax(avgs)
+    if("-1" in templates[m]):
+        brick_add_rot = -np.pi/2
+    elif("-2" in templates[m]):    
+        brick_add_rot = np.pi
+    elif("-3" in templates[m]):
+        brick_add_rot = np.pi/2
+    else:
+        brick_add_rot = 0
+
+    print("Brick rotation: " + str(brick_add_rot))
+
+
 def detect(dataset = "dataset.pt", is_correction = False):
     global attached_model, brick_dist, last_hbrick, pre_image, hside, model_side, KPI_12
 
@@ -443,13 +514,11 @@ def detect(dataset = "dataset.pt", is_correction = False):
     image[np.all(image == (0, 0, 0), axis=-1)] = (130,130,130)
 
     model = torch.hub.load(pkg_path + "/yolov5", 'custom', path=pkg_path+"/"+dataset, source="local", device="cpu")
-    model.cpu()
     results = model(image, size=500)
     if(results.pandas().xyxy[0].empty):
         print("Nothing found")
     else:
         # print(results.pandas().xyxy)
-
 
         model_side = 0
         if(dataset == "dataset.pt"):
@@ -496,11 +565,19 @@ def detect(dataset = "dataset.pt", is_correction = False):
         elif(not is_correction):
             print("Brick found: " + BLOCKS[attached_model] + " with direction " + directions[model_side])
 
+        found = False
+        for sided in BLOCKS_SIDED:
+            if(BLOCKS[attached_model] == sided):
+                found = True
+                break
+        if(model_side == 0 and found):
+            get_object_class(pre_image, attached_model)
+
     KPI_12 = datetime.now()
 
 
 def adjust():
-    global model_side, pre_image, last_hbrick, model_direction, model_direction2, attached_model
+    global model_side, pre_image, last_hbrick, model_direction, model_direction2, attached_model, brick_height_correction
 
     down_pos = -0.19
     stand_y_original = -0.675
@@ -525,7 +602,7 @@ def adjust():
             rotate_wrist(np.pi, 1)
             model_direction = np.abs(model_direction - 1)
 
-        compute_kinematik([2, 0, stand_y, down_pos], True)#down
+        compute_kinematik([2, 0, stand_y, down_pos+brick_height_correction], True)#down
         detach("grasper", "wrist_3_link", "brick"+str(attached_brick), "link")
         attach("stand", "link", "brick"+str(attached_brick), "link")
         open_gripper()
@@ -591,11 +668,11 @@ def adjust():
 
         last_hbrick = 0.32 - hdist
         pre_image = bridge.imgmsg_to_cv2(last_image)
-        rec_thread = threading.Thread(target=detect, args=("dataset.pt", True,), kwargs={})
+        rec_thread = threading.Thread(target=detect, args=("best.pt", True,), kwargs={})
         rec_thread.start()
 
 
-        compute_kinematik([2, posx, posy, down_pos], True)
+        compute_kinematik([2, posx, posy, down_pos+brick_height_correction], True)
         attach("grasper", "wrist_3_link", "brick"+str(attached_brick), "link")
         close_gripper()
         compute_kinematik([2, posx, posy, down_pos + 0.18])
@@ -676,7 +753,10 @@ def detect_brick_position():
     last_hbrick = 0.32 - hdist
     pre_image = bridge.imgmsg_to_cv2(last_image)
     
-    rec_thread = threading.Thread(target=detect, args=("dataset.pt",), kwargs={})
+    dataset = "best.pt"
+    if(sys.argv[1] == "a3" or sys.argv[1] == "a4"):
+        dataset = "dataset.pt"
+    rec_thread = threading.Thread(target=detect, args=(dataset,), kwargs={})
     rec_thread.start()
 
     _, _, box, center = rec.getPose(pre_image)
@@ -689,10 +769,92 @@ def detect_brick_position():
     brick_pixels_height = box[3] - box[2]
     brick_pixels_box = box
 
+def a4_position_found_bricks():
+    global a4_free_bricks, a4_curr_height, a4_brick_pos_ind, a4_brick_positions, conf_bricks, brick_height_correction, brick_pixels_height
+    for i in range(len(a4_free_bricks)):
+        if(a4_free_bricks[i] != -1):
+            found = False
+            for c_brick in conf_bricks:
+                if(c_brick["placed"] == False and float(c_brick["z"]) == a4_curr_height and c_brick["model"] == BLOCKS[a4_free_bricks[i]]):
+                    finalx, finaly, finalz = c_brick["x"], c_brick["y"], c_brick["z"]
+                    final_rot = [float(c_brick["rotx"]), float(c_brick["roty"]), float(c_brick["rotz"])]
+                    c_brick["placed"] = True
+                    a4_free_bricks[i] = -1
+                    brick_model = a4_free_bricks[i]
+                    a4_brick_pos_ind.append(i)
+                    found = True
+                    break
+            if(found):
+
+                if(BLOCKS_DEPTH[brick_model] == BRICK_WIDTH_1):
+                    brick_pixels_height = BRICK_PIXEL_HEIGHT_1
+                else:
+                    brick_pixels_height = BRICK_PIXEL_HEIGHT_2
+
+                x, y = a4_brick_positions[i]
+                thetas = compute_kinematik([2, x, y, -0.2])
+
+                thetas = compute_kinematik([2, posx, posy, -0.3], True, True, 4)
+                thetas = compute_kinematik([2, posx, posy], True, True, 4)
+                attach_joints(get_model_id())
+                close_gripper()
+
+                thetas = compute_kinematik([2, posx, posy, -0.3], True, True, 4)
+                thetas = compute_kinematik([2, posx, posy, -0.2], True, True, 2)
+
+                compute_kinematik([2, 0, -0.5, 0], False, False)
+
+                z = -0.38 + brick_height_correction + finalz
+
+                x, y = finalx, finaly
+
+                compute_kinematik([2, x, y, z+0.4], False, True, 10, True)
+
+                if(float(final_rot[2]) != 0):
+                    rotate_wrist(final_rot[2], 1)
+
+                compute_kinematik([2, x, y, z+0.15], True, True, 10)
+                compute_kinematik([2, x, y, z], True, True, 10)
+
+                time.sleep(0.3)
+
+                open_gripper()
+
+                attach("brick"+str(attached_brick), "link", "ground_plane", "link")
+
+                detach_joints()
+                time.sleep(0.3)
+
+                compute_kinematik([2, x, y, z+0.3], True, True, 10)
+
+                b_remaining = False
+                for brick in conf_bricks:
+                    if(a4_curr_height == float(brick["z"]) and brick["placed"] == False):
+                        b_remaining = True
+                        break
+                if(not b_remaining):
+                    found = False
+                    next_height = -1
+                    for brick in conf_bricks:
+                        if(float(brick["z"]) == a4_curr_height and brick["placed"] == False):
+                            found = True
+                        if((next_height == -1 or float(brick["z"]) - a4_curr_height < next_height) and float(brick["z"]) > a4_curr_height):
+                            next_height = float(brick["z"])
+                    if(not found):
+                        changed_height = True
+                        if(next_height == -1):
+                            a4_curr_height = -1
+                            print("Castle finished")
+                        else:
+                            a4_curr_height = next_height
+                            a4_position_found_bricks()
+                            return
     
 
 def application():
-    global attached_model, brick_rot, rec_thread, first_bricks, total_bricks, KPI_12, KPI_21
+    global attached_model, brick_rot, rec_thread, first_bricks, total_bricks, KPI_12, KPI_21, brick_add_rot
+
+    global a4_brick_pos_ind, a4_curr_height, a4_brick_rot, a4_brick_positions, a4_free_bricks, brick_height_correction
 
     print("Press enter to start...")
     input()
@@ -728,13 +890,58 @@ def application():
 
         adjust()
 
+        changed_height = False
+        if(sys.argv[1] == "a4"):
+            a4_brick_rot = [0,0,0]
+            placed = False
+            for brick in conf_bricks:
+                if(brick["model"] == BLOCKS[attached_model] and a4_curr_height == float(brick["z"]) and brick["placed"] == False):
+                    x, y, z = float(brick["x"]), float(brick["y"]), float(brick["z"])
+                    a4_brick_rot = [float(brick["rotx"]), float(brick["roty"]), float(brick["rotz"])]
+                    brick["placed"] = True
+                    placed = True
+                    break
+            if(placed):
+                found = False
+                next_height = -1
+                for brick in conf_bricks:
+                    if(float(brick["z"]) == a4_curr_height and brick["placed"] == False):
+                        found = True
+                    if((next_height == -1 or float(brick["z"]) - a4_curr_height < next_height) and float(brick["z"]) > a4_curr_height):
+                        next_height = float(brick["z"])
+                if(not found):
+                    changed_height = True
+                    if(next_height == -1):
+                        a4_curr_height = -1
+                        print("Construction finished")
+                    else:
+                        a4_curr_height = next_height
 
-        x, y = spa.get_xy_ground_pos(attached_model)
-        z = -0.38 + (nblocks[attached_model] * BLOCKS_HEIGHT[attached_model])
-        nblocks[attached_model] += 1
+            else:
+                free_pos = a4_brick_pos_ind.pop()
+                a4_free_bricks[free_pos] = attached_model
+                x, y = a4_brick_positions[free_pos]
+                z = 0
+
+
+        else:
+            x, y = spa.get_xy_ground_pos(attached_model)
+            z = (nblocks[attached_model] * BLOCKS_HEIGHT[attached_model])
+            nblocks[attached_model] += 1
+
+        z = -0.38 + brick_height_correction + z
+
         compute_kinematik([2, x, y, z+0.4], False, True, 10, True)
 
         rotate_wrist(brick_rot, 1, True)
+
+        if(brick_add_rot != 0):
+            rotate_wrist(brick_add_rot, 1)
+        brick_add_rot = 0
+
+        if(sys.argv[1] == "a4"):
+            if(a4_brick_rot[2] != 0):
+                rotate_wrist(a4_brick_rot[2], 1)
 
         compute_kinematik([2, x, y, z+0.15], True, True, 10)
         compute_kinematik([2, x, y, z], True, True, 10)
@@ -753,23 +960,31 @@ def application():
 
         open_gripper()
 
-        if(first_bricks[attached_model] > 0):
-            attach_bricks(attached_model)
+        if(sys.argv[1] == "a4"):
+            if(placed):
+                attach("brick"+str(attached_brick), "link", "ground_plane", "link")
         else:
-            attach("brick"+str(attached_brick), "link", "brick_ground"+str(attached_model+1), "link")
-            first_bricks[attached_model] = int(attached_brick)
+            if(first_bricks[attached_model] > 0):
+                attach_bricks(attached_model)
+            else:
+                attach("brick"+str(attached_brick), "link", "brick_ground"+str(attached_model+1), "link")
+                first_bricks[attached_model] = int(attached_brick)
 
         detach_joints()
         time.sleep(0.3)
 
-        compute_kinematik([2, x, y, z+0.2], True, True, 10)
+        compute_kinematik([2, x, y, z+0.3], True, True, 10)
+
+        if(changed_height):
+            a4_position_found_bricks()
 
 
 def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8, lift_first = False):
+    global brick_height_correction
     mode = int(args[0])
     x = float(args[1])
     y = float(args[2])
-    zposition = -0.38
+    zposition = -0.38 + brick_height_correction
     if(len(args) > 3):
         zposition = float(args[3])
     matrix_mode = 1
@@ -869,9 +1084,10 @@ def compute_kinematik(args, ignorew3 = False, wait = True, max_wait = 8, lift_fi
 
 def main():
 
-    global spawn_model, delete_model, mstate_srv, total_bricks
+    global spawn_model, delete_model, mstate_srv, total_bricks, a4_brick_positions, conf_bricks, a4_free_bricks, a4_brick_pos_ind, brick_height_correction
     if(len(sys.argv) > 1):
         init()
+
         if(sys.argv[1] == "a1"):
             total_bricks = 1
             spa.spawn(sys.argv, spawn_model, delete_model, mstate_srv)
@@ -889,6 +1105,65 @@ def main():
             total_bricks = num
             
             spa.spawn(sys.argv, spawn_model, delete_model, mstate_srv)
+            application()
+
+        elif(sys.argv[1] == "a4"):
+            if(len(sys.argv) > 2):
+                filename = sys.argv[2]
+            else:
+                filename = "/home/simone/tackin/src/tackin_control/scripts/conf.json"
+                # print("Invalid command")
+
+            f = open(filename)
+            configuration = json.load(f)
+            f.close()
+
+            total_bricks = len(configuration["bricks"])
+
+            x = 0.5
+            y = -0.5
+            z = 0
+
+            def replace_vals(s):
+                s = s.replace("x", str(x))
+                s = s.replace("y", str(y))
+                s = s.replace("z", str(z))
+                s = s.replace("w1/2", str(BRICK_WIDTH_1/2))
+                s = s.replace("w1", str(BRICK_WIDTH_1))
+                s = s.replace("w2", str(BRICK_WIDTH_2))
+                s = s.replace("w3", str(BRICK_WIDTH_3))
+                s = s.replace("w4", str(BRICK_WIDTH_4))
+                s = s.replace("+h2", "+"+str(NO_COLLISION_2))
+                return s.replace("h2", "*"+str(NO_COLLISION_2))
+
+
+            conf_bricks = []
+            for brick in configuration["bricks"]:
+                conf_brick = {}
+                bx, by, bz = brick["pos"].split()
+                conf_brick["x"] = eval(replace_vals(bx))
+                conf_brick["y"] = eval(replace_vals(by))
+                conf_brick["z"] = eval(replace_vals(bz))
+                conf_brick["rotx"] = float(brick["rot"].split()[0])
+                conf_brick["roty"] = float(brick["rot"].split()[1])
+                conf_brick["rotz"] = float(brick["rot"].split()[2])
+                conf_brick["placed"] = False
+                conf_brick["model"] = brick["model"]
+                conf_bricks.append(conf_brick)
+                
+            spa.spawn(["","a4", configuration], spawn_model, delete_model, mstate_srv)
+
+            for i in range(16):
+                tx = int(i / 4)
+                ty = int(i % 4)
+                a4_brick_positions.append([(tx+1) * -0.2, -1 + (ty+1) * 0.2])
+
+            for i in reversed(range(16)):
+                a4_brick_pos_ind.append(i)
+                a4_free_bricks.append(-1)
+
+            brick_height_correction = 0.04
+
             application()
 
         else:

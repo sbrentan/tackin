@@ -1,0 +1,131 @@
+{
+	"bricks": [
+
+
+		{
+			"model": "X2-Y2-Z2",
+			"pos"  : "x y z",
+			"rot"  : "0 0 0"
+		},
+		{
+			"model": "X2-Y2-Z2",
+			"pos"  : "x+w2 y z",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X2-Y2-Z2",
+			"pos"  : "x+w4 y z",
+			"rot"  : "0 0 0"
+		},
+
+        {
+			"model": "X2-Y2-Z2",
+			"pos"  : "x y+w2 z",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X2-Y2-Z2",
+			"pos"  : "x y+w4 z",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X2-Y2-Z2",
+			"pos"  : "x+w2 y+w4 z",
+			"rot"  : "0 0 0"
+		},
+
+        {
+			"model": "X2-Y2-Z2",
+			"pos"  : "x+w4 y+w2 z",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X2-Y2-Z2",
+			"pos"  : "x+w4 y+w4 z",
+			"rot"  : "0 0 0"
+		},
+
+
+
+
+        {
+			"model": "X1-Y4-Z2",
+			"pos"  : "x+w2 y+w1/2 z+h2",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X1-Y4-Z2",
+			"pos"  : "x+w2 y+w4-w1/2 z+h2",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X1-Y2-Z2",
+			"pos"  : "x+w1/2 y+w2 z+h2",
+			"rot"  : "0 0 1.57"
+		},
+        {
+			"model": "X1-Y2-Z2",
+			"pos"  : "x+w4-w1/2 y+w2 z+h2",
+			"rot"  : "0 0 1.57"
+		},
+
+
+
+
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w1 y+w1/2 z+2h2",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w1 y+w1/2+w1 z+2h2",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w1 y+w1/2+w2 z+2h2",
+			"rot"  : "0 0 0"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w1 y+w1/2+w3 z+2h2",
+			"rot"  : "0 0 0"
+		},
+
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w3 y+w1/2 z+2h2",
+			"rot"  : "0 0 3.14"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w3 y+w1/2+w1 z+2h2",
+			"rot"  : "0 0 3.14"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w3 y+w1/2+w2 z+2h2",
+			"rot"  : "0 0 3.14"
+		},
+        {
+			"model": "X1-Y2-Z2-CHAMFER",
+			"pos"  : "x+w3 y+w1/2+w3 z+2h2",
+			"rot"  : "0 0 3.14"
+		},
+
+
+
+
+        {
+			"model": "X2-Y2-Z2-FILLET",
+			"pos"  : "x+w2 y+w1 z+3h2",
+			"rot"  : "0 0 1.57"
+		},
+        {
+			"model": "X2-Y2-Z2-FILLET",
+			"pos"  : "x+w2 y+w3 z+3h2",
+			"rot"  : "0 0 -1.57"
+		}
+	]
+} 
