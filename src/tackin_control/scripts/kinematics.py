@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-
 import numpy as np
 from numpy import linalg
 
@@ -22,37 +21,39 @@ mat=np.matrix
 # ****** Coefficients ******
 
 
-global d1, a2, a3, a7, d4, d5, d6
-d1 =  0.1273
-a2 = -0.612
-a3 = -0.5723
-a7 = 0.075
-d4 =  0.163941
-d5 =  0.1157
-d6 =  0.0922
+global d1, a2, a3, d4, d5, d6
+d1 =  0.1273 #0.089159
+a2 = -0.612 #-0.425
+a3 = -0.5723 #-0.39225
+d4 =  0.163941 #0.10915
+d5 =  0.1157 #0.09465
+d6 =  0.0922 #0.0823
 
 global d, a, alph
 
 d = mat([0.089159, 0, 0, 0.10915, 0.09465, 0.0823])
-a =mat([0 ,-0.425 ,-0.39225 ,0 ,0 ,0])
+a = mat([0 ,-0.425 ,-0.39225 ,0 ,0 ,0])
 alph = mat([math.pi/2, 0, 0, math.pi/2, -math.pi/2, 0 ])
+
 
 # ************************************************** FORWARD KINEMATICS
 
 
 def AH( n,th,c  ):
-
+  
+  #homogeneous transformation matrix from n to c
   T_a = mat(np.identity(4), copy=False)
-  T_a[0,3] = a[0,n-1]
+  T_a[0,3] = a[0,n-1] #translation about a on x axis (normal axis)
   T_d = mat(np.identity(4), copy=False)
-  T_d[2,3] = d[0,n-1]
+  T_d[2,3] = d[0,n-1] #translation about d on z axis
 
+  #rotation on z axis to align x to the common axis
   Rzt = mat([[cos(th[n-1,c]), -sin(th[n-1,c]), 0 ,0],
              [sin(th[n-1,c]),  cos(th[n-1,c]), 0, 0],
              [0,               0,              1, 0],
              [0,               0,              0, 1]],copy=False)
       
-
+  #rotation on x axis to align z to the movement joint axis(z)
   Rxa = mat([[1, 0,                 0,                  0],
              [0, cos(alph[0,n-1]), -sin(alph[0,n-1]),   0],
              [0, sin(alph[0,n-1]),  cos(alph[0,n-1]),   0],
@@ -63,6 +64,7 @@ def AH( n,th,c  ):
 
   return A_i
 
+#homogeneous transformation matrix from 0 to 6
 def HTrans(th,c ):  
   A_1=AH( 1,th,c  )
   A_2=AH( 2,th,c  )
@@ -77,16 +79,17 @@ def HTrans(th,c ):
 
 # ************************************************** INVERSE KINEMATICS 
 
-def invKine(desired_pos):# T60
-  th = mat(np.zeros((6, 8)))
+def invKine(desired_pos):# T_06
+  th = mat(np.zeros((6, 8))) #each row contains all the angles for a joint for all the 8(2) possible solutions
   P_05 = (desired_pos * mat([0,0, -d6, 1]).T-mat([0,0,0,1 ]).T)
   
   # **** theta1 ****
   
   psi = atan2(P_05[2-1,0], P_05[1-1,0])
-  phi = acos(d4 /sqrt(P_05[2-1,0]*P_05[2-1,0] + P_05[1-1,0]*P_05[1-1,0]))
-  #The two solutions for theta1 correspond to the shoulder
-  #being either left or right
+  phi = acos(d4 /sqrt(P_05[2-1,0]*P_05[2-1,0] + P_05[1-1,0]*P_05[1-1,0])) #phi= +- acos(d4/P_05xy) d4/hypotenuse
+  #Has a solution in all cases except that d4 > (P_05 )xy. This happens when the origin of the 3rd frame is close to the z axis of frame 0.
+  #This forms an unreachable cylinder in the spherical workspace of the UR5
+  #The two solutions for theta1 correspond to the shoulder being either left or right.
   th[0, 0:4] = pi/2 + psi + phi
   th[0, 4:8] = pi/2 + psi - phi
   th = th.real
@@ -97,9 +100,9 @@ def invKine(desired_pos):# T60
   for i in range(0,len(cl)):
           c = cl[i]
           T_10 = linalg.inv(AH(1,th,c))
-          T_16 = T_10 * desired_pos
-          th[4, c:c+2] = + acos((T_16[2,3]-d4)/d6);
-          th[4, c+2:c+4] = - acos((T_16[2,3]-d4)/d6);
+          T_16 = T_10 * desired_pos #T_06 = T_01 * T_16
+          th[4, c:c+2] = + acos((T_16[2,3]-d4)/d6)
+          th[4, c+2:c+4] = - acos((T_16[2,3]-d4)/d6)
 
   th = th.real
   
@@ -110,10 +113,12 @@ def invKine(desired_pos):# T60
   for i in range(0,len(cl)):
           c = cl[i]
           T_10 = linalg.inv(AH(1,th,c))
-          T_16 = linalg.inv( T_10 * desired_pos )
+          T_16 = linalg.inv( T_10 * desired_pos ) #T_61
           th[5, c:c+2] = atan2((-T_16[1,2]/sin(th[4, c])),(T_16[0,2]/sin(th[4, c])))
           
   th = th.real
+
+  #3-Planar arm analytical approach 
 
   # **** theta3 ****
   cl = [0, 2, 4, 6]
@@ -125,6 +130,7 @@ def invKine(desired_pos):# T60
           T_14 = ( T_10 * desired_pos) * linalg.inv(T_54 * T_65)
           P_13 = T_14 * mat([0, -d4, 0, 1]).T - mat([0,0,0,1]).T
           t3 = cmath.acos((linalg.norm(P_13)**2 - a2**2 - a3**2 )/(2 * a2 * a3)) # norm ?
+          #two solutions: elbow either up or down
           th[2, c] = t3.real
           th[2, c+1] = -t3.real
 
