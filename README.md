@@ -28,6 +28,8 @@ where ```[param]``` is the assignment you want to execute as :
 
 3. ```a3 [object_number]```
 
+4. ```a4```
+
 where ```[object_number]``` is the number of object that will spawn (≤15)
 
 We suggest to restart the Gazebo process after every run, as it often causes simulation errors with the meshes of the spawned objects.
